@@ -7,28 +7,32 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		841F3224292F4BC0001CAEE4 /* sokheng_extension_pack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 841F3223292F4BC0001CAEE4 /* sokheng_extension_pack.swift */; };
 		847BD419292DCB93008E1044 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD418292DCB93008E1044 /* AppDelegate.swift */; };
 		847BD41B292DCB93008E1044 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD41A292DCB93008E1044 /* SceneDelegate.swift */; };
-		847BD41D292DCB93008E1044 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD41C292DCB93008E1044 /* MainViewController.swift */; };
+		847BD41D292DCB93008E1044 /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD41C292DCB93008E1044 /* LoginViewController.swift */; };
 		847BD420292DCB93008E1044 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 847BD41E292DCB93008E1044 /* Main.storyboard */; };
 		847BD423292DCB93008E1044 /* networkingfactory.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 847BD421292DCB93008E1044 /* networkingfactory.xcdatamodeld */; };
 		847BD425292DCB96008E1044 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 847BD424292DCB96008E1044 /* Assets.xcassets */; };
 		847BD428292DCB96008E1044 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 847BD426292DCB96008E1044 /* LaunchScreen.storyboard */; };
-		847BD431292E102D008E1044 /* SecondViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD430292E102D008E1044 /* SecondViewController.swift */; };
+		847BD431292E102D008E1044 /* RegisterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD430292E102D008E1044 /* RegisterViewController.swift */; };
+		84EC30182930779100D17164 /* UserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84EC30172930779100D17164 /* UserViewController.swift */; };
 		97F5F57509F535F67BBE86A3 /* Pods_networkingfactory.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 875A5377824DC3B6755E084F /* Pods_networkingfactory.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		841F3223292F4BC0001CAEE4 /* sokheng_extension_pack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sokheng_extension_pack.swift; sourceTree = "<group>"; };
 		847BD415292DCB93008E1044 /* networkingfactory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = networkingfactory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		847BD418292DCB93008E1044 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		847BD41A292DCB93008E1044 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		847BD41C292DCB93008E1044 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		847BD41C292DCB93008E1044 /* LoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewController.swift; sourceTree = "<group>"; };
 		847BD41F292DCB93008E1044 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		847BD422292DCB93008E1044 /* networkingfactory.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = networkingfactory.xcdatamodel; sourceTree = "<group>"; };
 		847BD424292DCB96008E1044 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		847BD427292DCB96008E1044 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		847BD429292DCB96008E1044 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		847BD430292E102D008E1044 /* SecondViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondViewController.swift; sourceTree = "<group>"; };
+		847BD430292E102D008E1044 /* RegisterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterViewController.swift; sourceTree = "<group>"; };
+		84EC30172930779100D17164 /* UserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserViewController.swift; sourceTree = "<group>"; };
 		875A5377824DC3B6755E084F /* Pods_networkingfactory.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_networkingfactory.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC89EAFA72C63F7966D17F62 /* Pods-networkingfactory.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-networkingfactory.release.xcconfig"; path = "Target Support Files/Pods-networkingfactory/Pods-networkingfactory.release.xcconfig"; sourceTree = "<group>"; };
 		EDDF1DECC7A3D21D80DB79DE /* Pods-networkingfactory.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-networkingfactory.debug.xcconfig"; path = "Target Support Files/Pods-networkingfactory/Pods-networkingfactory.debug.xcconfig"; sourceTree = "<group>"; };
@@ -77,11 +81,13 @@
 			children = (
 				847BD418292DCB93008E1044 /* AppDelegate.swift */,
 				847BD41A292DCB93008E1044 /* SceneDelegate.swift */,
-				847BD41C292DCB93008E1044 /* MainViewController.swift */,
-				847BD430292E102D008E1044 /* SecondViewController.swift */,
-				847BD41E292DCB93008E1044 /* Main.storyboard */,
 				847BD424292DCB96008E1044 /* Assets.xcassets */,
+				841F3223292F4BC0001CAEE4 /* sokheng_extension_pack.swift */,
+				84EC30172930779100D17164 /* UserViewController.swift */,
+				847BD41C292DCB93008E1044 /* LoginViewController.swift */,
+				847BD430292E102D008E1044 /* RegisterViewController.swift */,
 				847BD426292DCB96008E1044 /* LaunchScreen.storyboard */,
+				847BD41E292DCB93008E1044 /* Main.storyboard */,
 				847BD429292DCB96008E1044 /* Info.plist */,
 				847BD421292DCB93008E1044 /* networkingfactory.xcdatamodeld */,
 			);
@@ -230,10 +236,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				847BD41D292DCB93008E1044 /* MainViewController.swift in Sources */,
+				84EC30182930779100D17164 /* UserViewController.swift in Sources */,
+				847BD41D292DCB93008E1044 /* LoginViewController.swift in Sources */,
 				847BD419292DCB93008E1044 /* AppDelegate.swift in Sources */,
+				841F3224292F4BC0001CAEE4 /* sokheng_extension_pack.swift in Sources */,
 				847BD423292DCB93008E1044 /* networkingfactory.xcdatamodeld in Sources */,
-				847BD431292E102D008E1044 /* SecondViewController.swift in Sources */,
+				847BD431292E102D008E1044 /* RegisterViewController.swift in Sources */,
 				847BD41B292DCB93008E1044 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
