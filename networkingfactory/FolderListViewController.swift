@@ -156,25 +156,6 @@ class FolderListViewController: UIViewController {
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
         present(loadingAlertView, animated: true)
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-//            self.checkServerRespond()
-//        }
-//        AF.request("\(HengServer().serverIP())get_folder",
-//                   method: .get,
-//                   headers: apiHeaderToken).responseDecodable(of: FullFolderData.self) { response in
-//            if let result = response.result.get() {
-//
-//            } else {
-//
-//            }
-//
-//            switch response.result {
-//            case .success(let data):
-//                 break
-//            case .failure(let error):
-//                break
-//            }
-//        }
         AF.request("\(OurServer.serverIP)get_folder",
                    method: .get,
                    headers: apiHeaderToken).response { response in

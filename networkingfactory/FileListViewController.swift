@@ -8,6 +8,7 @@
 // swiftlint:disable identifier_name
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable function_body_length
+// swiftlint:disable force_cast
 
 import UIKit
 import Alamofire
@@ -148,34 +149,52 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
             return userFileFullData.page.count
         }
     }
-    // Return or Create cells for the table view
+    // Spawn tableView's cells <============================== Yo! this man spawn tableView cell [!]
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = mainTableView.dequeueReusableCell(
-            withIdentifier: "MainCell") as! MainTableViewCell // swiftlint:disable:this force_cast
+            withIdentifier: "MainCell") as! MainTableViewCell
         if isDownloadMode == false {
-            if userFileFullData.data[indexPath.row].name.lowercased().contains(".png") ||
-                userFileFullData.data[indexPath.row].name.lowercased().contains(".jpg") {
-                cell.iconImage.image = UIImage(systemName: "photo")
-            } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".doc") ||
-                        userFileFullData.data[indexPath.row].name.lowercased().contains(".pdf") {
-                cell.iconImage.image = UIImage(systemName: "doc.richtext")
-            } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".txt") {
-                cell.iconImage.image = UIImage(systemName: "doc.plaintext")
-            } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".mp3") ||
-                        userFileFullData.data[indexPath.row].name.lowercased().contains(".mp4") {
-                cell.iconImage.image = UIImage(systemName: "play.rectangle")
-            } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".rar") ||
-                        userFileFullData.data[indexPath.row].name.lowercased().contains(".zip") {
-                cell.iconImage.image = UIImage(systemName: "doc.zipper")
+            if userFileFullData.data[indexPath.row]._id.lowercased() == "uploading..." {
+                cell.loadingProgressBar.tintColor = UIColor.blue
+                cell.fileNameLabel.text = "Uploading a file ...."
+                cell.iconImage.image = UIImage(systemName: "icloud.and.arrow.up.fill")
+                cell.downIconImage.image = UIImage(systemName: "rays")
+                cell.sizeNameLabel.isHidden = true
+                cell.loadingProgressBar.isHidden = false
             } else {
-                cell.iconImage.image = UIImage(systemName: "doc")
+                if userFileFullData.data[indexPath.row].name.lowercased().contains(".png") ||
+                    userFileFullData.data[indexPath.row].name.lowercased().contains(".jpg") {
+                    cell.iconImage.image = UIImage(systemName: "photo")
+                } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".doc") ||
+                            userFileFullData.data[indexPath.row].name.lowercased().contains(".pdf") {
+                    cell.iconImage.image = UIImage(systemName: "doc.richtext")
+                } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".txt") {
+                    cell.iconImage.image = UIImage(systemName: "doc.plaintext")
+                } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".mp3") ||
+                            userFileFullData.data[indexPath.row].name.lowercased().contains(".mp4") {
+                    cell.iconImage.image = UIImage(systemName: "play.rectangle")
+                } else if userFileFullData.data[indexPath.row].name.lowercased().contains(".rar") ||
+                            userFileFullData.data[indexPath.row].name.lowercased().contains(".zip") {
+                    cell.iconImage.image = UIImage(systemName: "doc.zipper")
+                } else {
+                    cell.iconImage.image = UIImage(systemName: "doc")
+                }
+                cell.fileNameLabel.text = userFileFullData.data[indexPath.row].name
+                cell.sizeNameLabel.isHidden = false
+                cell.loadingProgressBar.isHidden = true
             }
-            cell.fileNameLabel.text = userFileFullData.data[indexPath.row].name
-            cell.sizeNameLabel.text = userFileFullData.data[indexPath.row].createdAt
-            if AppFileManager.shared.hasFile(fileName: userFileFullData.data[indexPath.row].name) {
-                cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+            //
+            // Icon modifier
+            if !(userFileFullData.data[indexPath.row]._id == "uploading...") {
+                if AppFileManager.shared.hasFile(fileName: userFileFullData.data[indexPath.row].name) {
+                    cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+                    cell.sizeNameLabel.text = "file downloaded"
+                } else {
+                    cell.downIconImage.image = UIImage(systemName: "arrow.down.to.line")
+                    cell.sizeNameLabel.text = "file in the cloud"
+                }
             } else {
-                cell.downIconImage.image = UIImage(systemName: "arrow.down.to.line")
+                cell.downIconImage.image = UIImage(systemName: "rays")
             }
         } else {
             if allFilesDownloaded[indexPath.row].lowercased().contains(".png") ||
@@ -197,65 +216,51 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
             }
             cell.fileNameLabel.text = allFilesDownloaded[indexPath.row]
             cell.sizeNameLabel.text = "file downloaded"
+            cell.sizeNameLabel.isHidden = false
+            cell.loadingProgressBar.isHidden = true
             cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
         }
         return cell
     }
-    // Do action when cell got click (selected) in specific index(row)
+    // Preform action when tableView cell got click <================== tableView cell Onclick [!]
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let cell = tableView.cellForRow(at: indexPath) as! MainTableViewCell
         if isDownloadMode {
             openPreviewScreen(fileName: allFilesDownloaded[indexPath.row])
         } else {
-            if !AppFileManager.shared.hasFile(fileName: userFileFullData.data[indexPath.row].name) {
-                let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                let cameraIcon = UIImage(systemName: "arrow.down.to.line")
-                let cameraAction = UIAlertAction(title: "Download", style: .default, handler: { _ in
-                    self.downloadFile(fileId: self.userFileFullData.data[indexPath.row]._id,
-                                      fileName: self.userFileFullData.data[indexPath.row].name,
-                                      authToken: self.folderEditObject.token)
-                })
-                cameraAction.setValue(CATextLayerAlignmentMode.left, forKey: "titleTextAlignment")
-                cameraAction.setValue(cameraIcon, forKey: "image")
-                alert.addAction(cameraAction)
-                let galleryIcon = UIImage(systemName: "trash")
-                let galleryAction = UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-                    OurServer.shared.deleteFile(fileId: self.userFileFullData.data[indexPath.row]._id,
-                                                authToken: self.folderEditObject.token, viewCon: self)
-                })
-                galleryAction.setValue(CATextLayerAlignmentMode.left, forKey: "titleTextAlignment")
-                galleryAction.setValue(galleryIcon, forKey: "image")
-                alert.addAction(galleryAction)
-                let cancleAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-                alert.addAction(cancleAction)
-                present(alert, animated: true)
-            } else { // <<<<<<<<<<<<<<<<<<<<<<< Seperated <<<<<<<<<<<<<<<<<<<<<<<<<<<
-                let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-                let cameraIcon = UIImage(systemName: "doc.viewfinder")
-                let cameraAction = UIAlertAction(title: "Open", style: .default, handler: { _ in
-                    self.openPreviewScreen(fileName: self.userFileFullData.data[indexPath.row].name)
-                })
-                cameraAction.setValue(CATextLayerAlignmentMode.left, forKey: "titleTextAlignment")
-                cameraAction.setValue(cameraIcon, forKey: "image")
-                alert.addAction(cameraAction)
-                let galleryIcon = UIImage(systemName: "trash")
-                let galleryAction = UIAlertAction(title: "Delete", style: .destructive, handler: { _ in
-                    self.showAlertBox(title: "Are you sure?",
-                                      message: "You are about to delete this file from the server",
-                                      firstButtonAction: nil, firstButtonText: "Cancel", firstButtonStyle: .cancel,
-                                      secondButtonAction: { _ in
-                        OurServer.shared.deleteFile(fileId: self.userFileFullData.data[indexPath.row]._id,
-                                                    authToken: self.folderEditObject.token, viewCon: self)},
-                                      secondButtonText: "Delete", secondButtonStyle: .destructive)
-                })
-                galleryAction.setValue(CATextLayerAlignmentMode.left, forKey: "titleTextAlignment")
-                galleryAction.setValue(galleryIcon, forKey: "image")
-                alert.addAction(galleryAction)
-                let cancleAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-                alert.addAction(cancleAction)
-                present(alert, animated: true)
+            if !(userFileFullData.data[indexPath.row]._id == "uploading...") {
+                if cell.loadingProgressBar.isHidden == true {
+                    if AppFileManager.shared.hasFile(fileName: userFileFullData.data[indexPath.row].name) {
+                        openPreviewScreen(fileName: userFileFullData.data[indexPath.row].name)
+                    } else {
+                        cell.sizeNameLabel.isHidden = true
+                        cell.loadingProgressBar.isHidden = false
+                        OurServer.shared.downloadFile(fileId: userFileFullData.data[indexPath.row]._id,
+                                                      fileName: userFileFullData.data[indexPath.row].name,
+                                                      authToken: folderEditObject.token, viewCont: self,
+                                                      tableCell: tableView.cellForRow(at: indexPath)!)
+                    }
+                }
             }
         }
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+    // Function delete when swipe Table view
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle,
+                   forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            if isDownloadMode {
+                if allFilesDownloaded.count <= 1 {
+                    emptyIconImage.isHidden = false
+                }
+                AppFileManager.shared.deleteFile(fileName: allFilesDownloaded[indexPath.row])
+                allFilesDownloaded.remove(at: indexPath.item)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+            } else {
+                OurServer.shared.deleteFile(fileId: self.userFileFullData.data[indexPath.row]._id,
+                                            authToken: self.folderEditObject.token, viewCon: self)
+            }
+        }
     }
     // Function to open preview screen and load the data
     func openPreviewScreen(fileName: String) {
@@ -313,7 +318,16 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
 
 extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControllerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
-        OurServer.shared.uploadDocumentFromURL(fileURL: url, viewCont: self)
+        if userFileFullData.page.count == 0 {
+            userFileFullData.data[0] = ApiFiles(_id: "uploading...", folderId: "", name: url.lastPathComponent,
+                                                                             createdAt: "", updatedAt: "")
+        } else {
+            userFileFullData.data.append(ApiFiles(_id: "uploading...", folderId: "", name: url.lastPathComponent,
+                                                  createdAt: "", updatedAt: ""))
+        }
+        userFileFullData.page.count += 1
+        mainTableView.reloadData()
+        OurServer.shared.uploadDocumentFromURL(fileURL: url, viewCont: self, arrIndex: userFileFullData.page.count)
         controller.dismiss(animated: true)
     }
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
@@ -323,41 +337,28 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
     func imagePickerController(_ picker: UIImagePickerController,
                                didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         let randomName = String("\(Int.random(in: 0...9999999))_\(Int.random(in: 0...9999999)).jpg")
+        if userFileFullData.page.count == 0 {
+            userFileFullData.data[0] = ApiFiles(_id: "uploading...", folderId: "", name: randomName,
+                                                                             createdAt: "", updatedAt: "")
+        } else {
+            userFileFullData.data.append(ApiFiles(_id: "uploading...", folderId: "", name: randomName,
+                                                  createdAt: "", updatedAt: ""))
+        }
+        userFileFullData.page.count += 1
+        mainTableView.reloadData()
         if let pickedImage = info[UIImagePickerController.InfoKey(
             rawValue: "UIImagePickerControllerEditedImage")] as? UIImage {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                let hengFileUrl = AppFileManager.shared.fileDirectoryURL
+                let fileUrl = AppFileManager.shared.fileDirectoryURL
                 AppFileManager.shared.createFileTemp(fileName: randomName,
                                                  fileData: pickedImage.jpegData(compressionQuality: 1)!)
-                OurServer.shared.uploadDocumentFromURL(fileURL: hengFileUrl.appending(path: "temp/\(randomName)"),
-                                                       viewCont: self)
+                OurServer.shared.uploadDocumentFromURL(fileURL: fileUrl.appending(path: "temp/\(randomName)"),
+                                                       viewCont: self, arrIndex: self.userFileFullData.page.count)
             }
         }
         picker.dismiss(animated: true)
     }
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
-    }
-    // Download file :
-    func downloadFile(fileId: String, fileName: String, authToken: String) {
-        loadingAlertView.message = "Downloading ..."
-        present(loadingAlertView, animated: true)
-        let apiHeaderToken: HTTPHeaders = ["token": authToken]
-        let alamoFireRequest = AF.request("\(OurServer.serverIP)file/\(fileId)/\(fileName)",
-                                          method: .get,
-                                          headers: apiHeaderToken)
-        alamoFireRequest.response { response in
-            if response.data!.count > 1000 {
-                AppFileManager.shared.saveDownloadFile(fileData: response.data!, fileName: fileName, viewCont: self)
-            } else {
-                if String(data: response.data!, encoding: .utf8)!.contains("\"error\"") {
-                    self.showAlertBox(title: "Can't download",
-                                      message: "There is an error while trying to download a file",
-                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                } else {
-                    AppFileManager.shared.saveDownloadFile(fileData: response.data!, fileName: fileName, viewCont: self)
-                }
-            }
-        }
     }
 }

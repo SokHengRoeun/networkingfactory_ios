@@ -38,11 +38,14 @@ class MainTableViewCell: UITableViewCell {
         myImage.widthAnchor.constraint(equalToConstant: imageSize).isActive = true
         return myImage
     }()
+    var loadingProgressBar = UIProgressView()
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         contentView.addSubview(iconImage)
         contentView.addSubview(downIconImage)
         contentView.addSubview(fileNameLabel)
+        contentView.addSubview(loadingProgressBar)
+        loadingProgressBar.tintColor = UIColor.green
         contentView.addSubview(sizeNameLabel)
         configureConstrants()
     }
@@ -68,5 +71,9 @@ extension MainTableViewCell {
         sizeNameLabel.rightAnchor.constraint(equalTo: downIconImage.leftAnchor, constant: -10).isActive = true
         downIconImage.rightAnchor.constraint(equalTo: contentView.rightAnchor, constant: -10).isActive = true
         downIconImage.centerYAnchor.constraint(equalTo: iconImage.centerYAnchor).isActive = true
+        loadingProgressBar.translatesAutoresizingMaskIntoConstraints = false
+        loadingProgressBar.centerYAnchor.constraint(equalTo: sizeNameLabel.centerYAnchor).isActive = true
+        loadingProgressBar.leftAnchor.constraint(equalTo: iconImage.rightAnchor, constant: 10).isActive = true
+        loadingProgressBar.rightAnchor.constraint(equalTo: downIconImage.leftAnchor, constant: -10).isActive = true
     }
 }
