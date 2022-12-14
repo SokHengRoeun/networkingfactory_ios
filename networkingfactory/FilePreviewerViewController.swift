@@ -98,6 +98,24 @@ extension FilePreviewerViewController: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return imageViewer
     }
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        let imageURL = AppFileManager.shared.fileDirectoryURL.appending(path: fileName)
+        let image = UIImage(contentsOfFile: imageURL.path())!
+        if scrollView.zoomScale >= 0 {
+            let ratioW = imageViewer.frame.width / image.size.width
+            let ratioH = imageViewer.frame.height / image.size.height
+            let ratio = ratioW < ratioH ? ratioW: ratioH
+            let newWidth = image.size.width * ratio
+            let newHeight = image.size.height * ratio
+            let conditionLeft = newWidth * scrollView.zoomScale > imageViewer.frame.width
+            let left = 0.5 * (conditionLeft ? newWidth - imageViewer.frame.width :
+                                (scrollView.frame.width - scrollView.contentSize.width))
+            let conditionTop = newHeight * scrollView.zoomScale > imageViewer.frame.height
+            let top = 0.5 * (conditionTop ? newHeight - imageViewer.frame.height :
+                                (scrollView.frame.height - scrollView.contentSize.height))
+            scrollView.contentInset = UIEdgeInsets(top: top, left: left, bottom: top, right: left)
+        }
+    }
     func dismissNavigation() {
         navigationController?.popViewController(animated: true)
         sendRefreshNotification()
@@ -138,8 +156,8 @@ extension FilePreviewerViewController: UIScrollViewDelegate {
         tempBlackImage.backgroundColor = UIColor.black
         tempBlackImage.translatesAutoresizingMaskIntoConstraints = false
         tempBlackImage.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        tempBlackImage.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-        tempBlackImage.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+        tempBlackImage.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+        tempBlackImage.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
         tempBlackImage.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
         playIconImage.translatesAutoresizingMaskIntoConstraints = false
         playIconImage.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor).isActive = true
@@ -173,8 +191,8 @@ extension FilePreviewerViewController: UIScrollViewDelegate {
         imageScrollView.delegate = self
         imageScrollView.translatesAutoresizingMaskIntoConstraints = false
         imageScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        imageScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-        imageScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+        imageScrollView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+        imageScrollView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
         imageScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
         imageViewer.contentMode = .scaleAspectFit
         imageViewer.translatesAutoresizingMaskIntoConstraints = false
@@ -183,8 +201,7 @@ extension FilePreviewerViewController: UIScrollViewDelegate {
         imageViewer.leftAnchor.constraint(equalTo: imageScrollView.leftAnchor).isActive = true
         imageViewer.rightAnchor.constraint(equalTo: imageScrollView.rightAnchor).isActive = true
         imageViewer.bottomAnchor.constraint(equalTo: imageScrollView.bottomAnchor).isActive = true
-        imageViewer.heightAnchor.constraint(
-            equalToConstant: imageScrollView.safeAreaLayoutGuide.layoutFrame.height).isActive = true
+        imageViewer.heightAnchor.constraint(equalTo: imageScrollView.heightAnchor, multiplier: 1.0).isActive = true
         imageViewer.widthAnchor.constraint(
             equalToConstant: imageScrollView.safeAreaLayoutGuide.layoutFrame.width).isActive = true
     }

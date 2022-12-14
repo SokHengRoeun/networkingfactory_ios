@@ -6,6 +6,7 @@
 //
 
 // swiftlint:disable identifier_name
+// swiftlint:disable type_body_length
 
 import UIKit
 import Alamofire
@@ -102,6 +103,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         return myButton
     }()
     var tapTapRecogn = UITapGestureRecognizer()
+    var mainScrollView = UIScrollView()
     // Alert Loading Uploading LMAO
     let loadingAlertView = UIAlertController(title: "Loading ...", message: nil, preferredStyle: .alert)
     let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
@@ -116,7 +118,8 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         loadingIndicator.startAnimating()
         loadingAlertView.view.addSubview(loadingIndicator)
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^
-        view.addSubview(vStackContainer)
+        view.addSubview(mainScrollView)
+        mainScrollView.addSubview(vStackContainer)
         vStackContainer.addArrangedSubview(userImageIcon)
         vStackContainer.addArrangedSubview(firstnameLabel)
         vStackContainer.addArrangedSubview(firstnameInputfield)
@@ -135,6 +138,24 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         registerButton.addTarget(self, action: #selector(summitRegisterOnlick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         configureGeneralConstraints()
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+                                       name: UIResponder.keyboardWillHideNotification, object: nil)
+        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+                                       name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    @objc func adjustForKeyboard(notification: Notification) {
+        guard let keyboardValue =
+                notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+        let keyboardScreenEndFrame = keyboardValue.cgRectValue
+        let keyboardViewEndFrame = view.convert(keyboardScreenEndFrame, from: view.window)
+        if notification.name == UIResponder.keyboardWillHideNotification {
+            mainScrollView.contentInset = .zero
+        } else {
+            mainScrollView.contentInset = UIEdgeInsets(top: 0, left: 0,
+                                                       bottom: keyboardViewEndFrame.height - view.safeAreaInsets.bottom,
+                                                       right: 0)
+        }
     }
     func dismissLoadingAlert() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -264,13 +285,20 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
 
 extension RegisterViewController {
     func configureGeneralConstraints() {
+        mainScrollView.translatesAutoresizingMaskIntoConstraints = false
+        mainScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
+        mainScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+        mainScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+        mainScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
         vStackContainer.translatesAutoresizingMaskIntoConstraints = false
-        vStackContainer.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor,
-                                                 constant: -100).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor,
-                                               constant: -30).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor,
-                                              constant: 30).isActive = true
+        vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
+                                               constant: -40).isActive = true
+        vStackContainer.centerXAnchor.constraint(equalTo: mainScrollView.centerXAnchor).isActive = true
+        vStackContainer.topAnchor.constraint(equalTo: mainScrollView.topAnchor).isActive = true
+        vStackContainer.leftAnchor.constraint(equalTo: mainScrollView.leftAnchor, constant: 20).isActive = true
+        vStackContainer.rightAnchor.constraint(equalTo: mainScrollView.rightAnchor).isActive = true
+        vStackContainer.bottomAnchor.constraint(equalTo: mainScrollView.bottomAnchor).isActive = true
     }
     func highlightEmptyInputfield() {
         if emailInputfield.text == ""{

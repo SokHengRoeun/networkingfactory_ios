@@ -57,11 +57,8 @@ class FolderListViewController: UIViewController {
                 systemName: "icloud.slash.fill")?.withTintColor(UIColor.red,
                                                            renderingMode: .alwaysOriginal)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self.showAlertBox(title: "Server not response",
-                                  message: "Can't connect to the server",
-                                  buttonAction: nil,
-                                  buttonText: "Okay",
-                                  buttonStyle: .default)
+                self.showAlertBox(title: "Server not response", message: "Can't connect to the server",
+                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
             }
         }
     }
@@ -79,27 +76,26 @@ class FolderListViewController: UIViewController {
         collectionLayout.scrollDirection = .vertical
         collectionLayout.minimumLineSpacing = 7
         collectionLayout.minimumInteritemSpacing = 1
-        collectionLayout.itemSize = CGSize(width: (view.frame.size.width/3) - 10,
-                                           height: (view.frame.size.width/3) - 10)
+        if view.frame.height < view.frame.width {
+            collectionLayout.itemSize = CGSize(width: (view.frame.size.height/3) - 10,
+                                               height: (view.frame.size.height/3) - 10)
+        } else {
+            collectionLayout.itemSize = CGSize(width: (view.frame.size.width/3) - 10,
+                                               height: (view.frame.size.width/3) - 10)
+        }
         collectionLayout.collectionView?.backgroundColor = UIColor.orange
         mainCollectionView = UICollectionView(frame: .zero, collectionViewLayout: collectionLayout)
         // UI components inits :
         view.backgroundColor = UIColor.white
         title = "Your Drive"
-        let signoutButton = UIBarButtonItem(title: "Sign out",
-                                            style: .plain,
-                                            target: self,
-                                            action: #selector(signoutOnclick))
+        let signoutButton = UIBarButtonItem(title: "Sign out", style: .plain,
+                                            target: self, action: #selector(signoutOnclick))
         signoutButton.tintColor = UIColor.red
         self.navigationItem.setLeftBarButton(signoutButton, animated: true)
         let addFolderButton = UIBarButtonItem(image: UIImage(systemName: "folder.badge.plus"),
-                                              style: .done,
-                                              target: self,
-                                              action: #selector(addFolderOnclick))
+                                              style: .done, target: self, action: #selector(addFolderOnclick))
         let downFolderButton = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.down"),
-                                              style: .done,
-                                              target: self,
-                                              action: #selector(downFolderOnclick))
+                                              style: .done, target: self, action: #selector(downFolderOnclick))
         self.navigationItem.setRightBarButtonItems([addFolderButton, downFolderButton], animated: true)
         self.navigationItem.setHidesBackButton(true, animated: true)
         view.addSubview(mainCollectionView!)
@@ -116,14 +112,10 @@ class FolderListViewController: UIViewController {
         configureGeneralConstraint()
     }
     @objc func signoutOnclick() {
-        showAlertBox(title: "Are you sure?",
-                     message: "You are about to sign out from your account",
-                     firstButtonAction: nil,
-                     firstButtonText: "Cancel",
-                     firstButtonStyle: .cancel,
+        showAlertBox(title: "Are you sure?", message: "You are about to sign out from your account",
+                     firstButtonAction: nil, firstButtonText: "Cancel", firstButtonStyle: .cancel,
                      secondButtonAction: { _ in self.signOutAction() },
-                     secondButtonText: "Sign out",
-                     secondButtonStyle: .destructive)
+                     secondButtonText: "Sign out", secondButtonStyle: .destructive)
     }
     func signOutAction () {
         self.navigationController?.popViewController(animated: true)
@@ -136,11 +128,8 @@ class FolderListViewController: UIViewController {
             destinationScene.folderEditObject.token = userObj.token
             navigationController?.pushViewController(destinationScene, animated: true)
         } else {
-            self.showAlertBox(title: "Connection error",
-                              message: "Can't connect to the server",
-                              buttonAction: nil,
-                              buttonText: "Okay",
-                              buttonStyle: .default)
+            self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
     }
     @objc func downFolderOnclick() {
@@ -181,22 +170,16 @@ class FolderListViewController: UIViewController {
                     self.dismissLoadingAlert()
                     self.gotRespondFromServer = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.showAlertBox(title: "Data error",
-                                          message: errorObj.error,
-                                          buttonAction: nil,
-                                          buttonText: "Okay",
-                                          buttonStyle: .default)
+                        self.showAlertBox(title: "Data error", message: errorObj.error,
+                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     }
                 } else {
                     if response.error != nil {
                         self.dismissLoadingAlert()
                         self.gotRespondFromServer = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.showAlertBox(title: "Connection error",
-                                              message: "Can't connect to the server",
-                                              buttonAction: nil,
-                                              buttonText: "Okay",
-                                              buttonStyle: .default)
+                            self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                         }
                     } else {
                         do {
@@ -229,7 +212,6 @@ class FolderListViewController: UIViewController {
                 }
             }
         }
-        print(">> Get All Folder \(Int.random(in: 0...999))")
     }
 }
 
@@ -256,12 +238,43 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         destinationScene.isDownloadMode = false
         navigationController?.pushViewController(destinationScene, animated: true)
     }
+    func collectionView(_ collectionView: UICollectionView,
+                        contextMenuConfigurationForItemAt indexPath: IndexPath,
+                        point: CGPoint) -> UIContextMenuConfiguration? {
+        configureContextMenu(index: indexPath.row)
+    }
     func notificationListenSystem() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(getAllFolder),
                                                name: Notification.Name(rawValue: "refreshView"),
                                                object: nil
         )
+    }
+    func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
+        let tempApi = FolderEditCreateObject(_id: userFullData.data[index]._id,
+                                             name: userFullData.data[index].name,
+                                             description: userFullData.data[index].description,
+                                             token: userObj.token)
+        let context = UIContextMenuConfiguration(identifier: nil,
+                                                 previewProvider: nil) { (action) -> UIMenu? in
+            debugPrint("> \(action)")
+            let edit = UIAction(title: "Edit", image: UIImage(systemName: "square.and.pencil"),
+                                identifier: nil, discoverabilityTitle: nil, state: .off) { (_) in
+                let destinationScene = FolderEditViewController()
+                destinationScene.requestFromRoot = true
+                destinationScene.isEditMode = true
+                destinationScene.folderEditObject = tempApi
+                self.navigationController?.pushViewController(destinationScene, animated: true)
+            }
+            let delete = UIAction(title: "Delete", image: UIImage(systemName: "trash"),
+                                  identifier: nil, discoverabilityTitle: nil,
+                                  attributes: .destructive, state: .off) { (_) in
+                OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
+            }
+            return UIMenu(title: "", image: nil, identifier: nil,
+                          options: UIMenu.Options.displayInline, children: [edit, delete])
+        }
+        return context
     }
     func configureGeneralConstraint() {
         mainCollectionView!.translatesAutoresizingMaskIntoConstraints = false

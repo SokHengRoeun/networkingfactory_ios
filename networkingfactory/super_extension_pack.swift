@@ -5,9 +5,7 @@
 // Updated : 27-Oct-2022 11:16AM(UTC+7)
 // Updated : 15-Nov-2022 10:35AM(UTC+7)
 //
-// swiftlint:disable function_parameter_count
-// swiftlint:disable force_try
-// swiftlint:disable file_length
+// swiftlint:disable all
 
 import UIKit
 import Alamofire
@@ -18,47 +16,28 @@ struct DeleteFileObject: Codable {
 }
 
 extension UIViewController {
-    func showAlertBox(title: String,
-                      message: String,
-                      buttonAction: ((UIAlertAction) -> Void)?,
-                      buttonText: String,
-                      buttonStyle: UIAlertAction.Style) {
-        let alertBox = UIAlertController(title: title,
-                                         message: message,
-                                         preferredStyle: .alert)
-        let alertActions = UIAlertAction(title: buttonText,
-                                         style: buttonStyle,
-                                         handler: buttonAction)
+    func showAlertBox(title: String, message: String, buttonAction: ((UIAlertAction) -> Void)?,
+                      buttonText: String, buttonStyle: UIAlertAction.Style) {
+        let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        let alertActions = UIAlertAction(title: buttonText, style: buttonStyle, handler: buttonAction)
         alertBox.addAction(alertActions)
         DispatchQueue.main.async {
-            self.present(alertBox,
-                         animated: true,
-                         completion: nil)
+            self.present(alertBox, animated: true, completion: nil)
         }
     }
-    func showAlertBox(title: String,
-                      message: String,
-                      firstButtonAction: ((UIAlertAction) -> Void)?,
-                      firstButtonText: String,
-                      firstButtonStyle: UIAlertAction.Style,
-                      secondButtonAction: ((UIAlertAction) -> Void)?,
-                      secondButtonText: String,
+    func showAlertBox(title: String, message: String, firstButtonAction: ((UIAlertAction) -> Void)?,
+                      firstButtonText: String, firstButtonStyle: UIAlertAction.Style,
+                      secondButtonAction: ((UIAlertAction) -> Void)?, secondButtonText: String,
                       secondButtonStyle: UIAlertAction.Style) {
-        let alertBox = UIAlertController(title: title,
-                                         message: message,
-                                         preferredStyle: .alert)
-        let firstAlertAction = UIAlertAction(title: firstButtonText,
-                                       style: firstButtonStyle,
+        let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        let firstAlertAction = UIAlertAction(title: firstButtonText, style: firstButtonStyle,
                                        handler: firstButtonAction)
         alertBox.addAction(firstAlertAction)
-        let secondAlertAction = UIAlertAction(title: secondButtonText,
-                                          style: secondButtonStyle,
+        let secondAlertAction = UIAlertAction(title: secondButtonText, style: secondButtonStyle,
                                           handler: secondButtonAction)
         alertBox.addAction(secondAlertAction)
         DispatchQueue.main.async {
-            self.present(alertBox,
-                         animated: true,
-                         completion: nil
+            self.present(alertBox, animated: true, completion: nil
             )
         }
     }
@@ -112,7 +91,7 @@ class OurServer {
     static let shared = OurServer()
     static let serverIP =  "http://192.168.11.56:8000/"
     func deleteFile(fileId: String, authToken: String, viewCon: UIViewController) {
-        let fileListVC = viewCon as! FileListViewController // swiftlint:disable:this force_cast
+        let fileListVC = viewCon as! FileListViewController
         let apiRequest = DeleteFileObject(_id: fileId, token: authToken)
         AF.request("\(OurServer.serverIP)delete_file",
                    method: .post,
@@ -127,18 +106,12 @@ class OurServer {
                     } catch {
                         print("Encoding Error >>CreateEditFolder>>DeleteFile>>IfJson.Contain(ERROR)")
                     }
-                    viewCon.showAlertBox(title: "Can't delete file",
-                                         message: errorObj.error,
-                                         buttonAction: nil,
-                                         buttonText: "Okay",
-                                         buttonStyle: .default)
+                    viewCon.showAlertBox(title: "Can't delete file", message: errorObj.error,
+                                         buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                 } else {
                     if response.error != nil {
-                        viewCon.showAlertBox(title: "Connection error",
-                                             message: "Can't connect to the server",
-                                             buttonAction: nil,
-                                             buttonText: "Okay",
-                                             buttonStyle: .default)
+                        viewCon.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                                             buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     } else {
                         fileListVC.refresherLoader()
                         fileListVC.dismissLoadingAlert()
@@ -147,12 +120,11 @@ class OurServer {
             }
         }
     }
-    func uploadDocumentFromURL(fileURL: URL, // swiftlint:disable:this function_body_length
-                               viewCont: UIViewController, arrIndex: Int) {
-        let fileListVC = viewCont as! FileListViewController // swiftlint:disable:this force_cast
+    func uploadDocumentFromURL(fileURL: URL, viewCont: UIViewController, arrIndex: Int) {
+        let fileListVC = viewCont as! FileListViewController
         let cell = fileListVC.mainTableView.cellForRow(
             at: IndexPath(row: Base64Encode.shared.minusOne(arrIndex),
-                          section: 0)) as! MainTableViewCell // swiftlint:disable:this force_cast
+                          section: 0)) as! MainTableViewCell
         struct Response: Codable {
             var success: Bool
             var file: ApiFiles
@@ -209,7 +181,7 @@ class OurServer {
         }
     }
     func getAllFilesAPI(viewCont: UIViewController) {
-        let fileListVC = viewCont as! FileListViewController // swiftlint:disable:this force_cast
+        let fileListVC = viewCont as! FileListViewController
         let apiHeaderToken: HTTPHeaders = ["token": fileListVC.folderEditObject.token]
         let apiParameter = FolderIDStruct(folderId: fileListVC.folderEditObject._id)
         AF.request("\(OurServer.serverIP)get_files",
@@ -247,12 +219,81 @@ class OurServer {
                 }
             }
         }
-        print("\n\n>>> Request get all data\n\n")
+    }
+    func folderRequestAction(toPerform: String, apiRequest: FolderEditCreateObject, viewCon: UIViewController) {
+        let alamoFireRequest = AF.request("\(OurServer.serverIP)\(toPerform)_folder",
+                                          method: .post, parameters: apiRequest, encoder: JSONParameterEncoder.default)
+        if String(describing: viewCon).contains("FolderEditViewController") {
+            let folderEditVC = viewCon as! FolderEditViewController
+            alamoFireRequest.response { response in
+                if let data = response.data {
+                    let json = String(data: data, encoding: .utf8)
+                    if json!.contains("\"error\"") {
+                        var errorObj = ErrorObject()
+                        do {
+                            errorObj = try JSONDecoder().decode(ErrorObject.self, from: data)
+                        } catch {
+                            print("Encoding Error >>CreateEditFolder>>\(toPerform)Folder>>IfJson.Contain(ERROR)")
+                        }
+                        folderEditVC.showAlertBox(title: "Can't \(toPerform)", message: errorObj.error,
+                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                    } else {
+                        if response.error != nil {
+                            folderEditVC.showAlertBox(title: "Connection error",
+                                                      message: response.error!.localizedDescription,
+                                                      buttonAction: { _ in
+                                folderEditVC.decideToClose(toPerform: toPerform) },
+                                                      buttonText: "Okay", buttonStyle: .default)
+                        } else {
+                            if !folderEditVC.isEditMode {
+                                folderEditVC.dismissNavigation()
+                            } else {
+                                if folderEditVC.requestFromRoot {
+                                    folderEditVC.dismissNavigation()
+                                } else {
+                                    let viewControllers: [UIViewController] =
+                                    folderEditVC.navigationController!.viewControllers as [UIViewController]
+                                    folderEditVC.navigationController!.popToViewController(
+                                        viewControllers[viewControllers.count - 3], animated: true)
+                                }
+                            }
+                            folderEditVC.sendRefreshNotification()
+                        }
+                    }
+                }
+            }
+        } else {
+            let folderViewVC = viewCon as! FolderListViewController
+            alamoFireRequest.response { response in
+                if let data = response.data {
+                    let json = String(data: data, encoding: .utf8)
+                    if json!.contains("\"error\"") {
+                        var errorObj = ErrorObject()
+                        do {
+                            errorObj = try JSONDecoder().decode(ErrorObject.self, from: data)
+                        } catch {
+                            print("Encoding Error >>CreateEditFolder>>\(toPerform)Folder>>IfJson.Contain(ERROR)")
+                        }
+                        folderViewVC.showAlertBox(title: "Can't \(toPerform)", message: errorObj.error,
+                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                    } else {
+                        if response.error != nil {
+                            folderViewVC.showAlertBox(title: "Connection error",
+                                                      message: response.error!.localizedDescription,
+                                                      buttonAction: nil,
+                                                      buttonText: "Okay", buttonStyle: .default)
+                        } else {
+                            folderViewVC.getAllFolder()
+                        }
+                    }
+                }
+            }
+        }
     }
     // Download file :
     func downloadFile(fileId: String, fileName: String, authToken: String, viewCont: UIViewController,
                       tableCell: UITableViewCell) {
-        let cell = tableCell as! MainTableViewCell // swiftlint:disable:this force_cast
+        let cell = tableCell as! MainTableViewCell
         cell.loadingProgressBar.tintColor = UIColor.green
         let apiHeaderToken: HTTPHeaders = ["token": authToken]
         AF.download("\(OurServer.serverIP)file/\(fileId)/\(fileName)", method: .get, headers: apiHeaderToken)
@@ -340,8 +381,8 @@ class AppFileManager {
     // save download files
     func saveDownloadFile (fileData: Data, fileName: String, viewCont: UIViewController,
                            tableCell: UITableViewCell) {
-        let fileListVC = viewCont as! FileListViewController // swiftlint:disable:this force_cast
-        let cell = tableCell as! MainTableViewCell // swiftlint:disable:this force_cast
+        let fileListVC = viewCont as! FileListViewController
+        let cell = tableCell as! MainTableViewCell
         let saveFile = AppFileManager.shared.storeFile(fileName: fileName, fileData: fileData)
         if saveFile == "success" {
             print("Downloaded file saved")
@@ -356,7 +397,7 @@ class AppFileManager {
         cell.sizeNameLabel.isHidden = false
     }
     func getAllFilesDownload(viewCont: UIViewController) -> [String] {
-        let fileListVC = viewCont as! FileListViewController // swiftlint:disable:this force_cast
+        let fileListVC = viewCont as! FileListViewController
         let localPath = AppFileManager.shared.fileDirectoryURL.path()
         var downloadedFiles = [String]()
         do {

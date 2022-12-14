@@ -19,6 +19,7 @@ struct FolderEditCreateObject: Codable {
 }
 
 class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
+    var requestFromRoot = false
     var isEditMode = false
     var editAtIndex = 0
     var folderEditObject = FolderEditCreateObject(_id: "", name: "", description: "", token: "")
@@ -77,6 +78,7 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
         return myButton
     }()
     var tapTapRecogn = UITapGestureRecognizer()
+    var mainScrollView = UIScrollView()
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.white
@@ -87,7 +89,8 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
             title = "Create Folder"
             summitButton.setTitle("Create folder", for: .normal)
         }
-        view.addSubview(vStackContainer)
+        view.addSubview(mainScrollView)
+        mainScrollView.addSubview(vStackContainer)
         if isEditMode {
             let deleteBarButton = UIBarButtonItem(title: "Delete", style: .done,
                                                   target: self, action: #selector(deleteButtonOnclick))
@@ -110,6 +113,24 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
         summitButton.addTarget(self, action: #selector(editOrCreateFolderAction), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         configureGeneralContraints()
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+                                       name: UIResponder.keyboardWillHideNotification, object: nil)
+        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+                                       name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    @objc func adjustForKeyboard(notification: Notification) {
+        guard let keyboardValue =
+                notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+        let keyboardScreenEndFrame = keyboardValue.cgRectValue
+        let keyboardViewEndFrame = view.convert(keyboardScreenEndFrame, from: view.window)
+        if notification.name == UIResponder.keyboardWillHideNotification {
+            mainScrollView.contentInset = .zero
+        } else {
+            mainScrollView.contentInset = UIEdgeInsets(top: 0, left: 0,
+                                                       bottom: keyboardViewEndFrame.height - view.safeAreaInsets.bottom,
+                                                       right: 0)
+        }
     }
     func allInputHaveValue() -> Bool {
         if folderNameInputfield.hasText && folderDescriptionInputfield.hasText {
@@ -126,7 +147,7 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
                                                             name: folderNameInputfield.text!,
                                                             description: folderDescriptionInputfield.text!,
                                                             token: folderEditObject.token)
-                    requestApiFolder(toPerform: "update", apiRequest: tempApi)
+                    OurServer.shared.folderRequestAction(toPerform: "update", apiRequest: tempApi, viewCon: self)
                 } else {
                     showAlertBox(title: "Invalid character",
                                  message: "Your folder information should not contain special character",
@@ -150,7 +171,7 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
                                                             name: folderNameInputfield.text!,
                                                             description: folderDescriptionInputfield.text!,
                                                             token: folderEditObject.token)
-                    requestApiFolder(toPerform: "create", apiRequest: tempApi)
+                    OurServer.shared.folderRequestAction(toPerform: "create", apiRequest: tempApi, viewCon: self)
                 } else {
                     showAlertBox(title: "Invalid character",
                                  message: "Your folder information should not contain special character",
@@ -189,7 +210,7 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
                                                  name: self.folderEditObject.name,
                                                  description: self.folderEditObject.description,
                                                  token: self.folderEditObject.token)
-            self.requestApiFolder(toPerform: "delete", apiRequest: tempApi) },
+            OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self) },
                      secondButtonText: "Delete",
                      secondButtonStyle: .destructive)
     }
@@ -236,54 +257,19 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
 
 extension FolderEditViewController {
     func configureGeneralContraints() {
+        mainScrollView.translatesAutoresizingMaskIntoConstraints = false
+        mainScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
+        mainScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+        mainScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+        mainScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
         vStackContainer.translatesAutoresizingMaskIntoConstraints = false
-        vStackContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,
-                                             constant: 10).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor,
-                                               constant: -20).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor,
-                                              constant: 20).isActive = true
-    }
-    func requestApiFolder(toPerform: String, apiRequest: FolderEditCreateObject) {
-        AF.request("\(OurServer.serverIP)\(toPerform)_folder",
-                   method: .post,
-                   parameters: apiRequest,
-                   encoder: JSONParameterEncoder.default).response { response in
-            // debugPrint(response)
-            if let data = response.data {
-                let json = String(data: data, encoding: .utf8)
-                if json!.contains("\"error\"") {
-                    var errorObj = ErrorObject()
-                    do {
-                        errorObj = try JSONDecoder().decode(ErrorObject.self, from: data)
-                    } catch {
-                        print("Encoding Error >>CreateEditFolder>>\(toPerform)Folder>>IfJson.Contain(ERROR)")
-                    }
-                    self.showAlertBox(title: "Can't \(toPerform)",
-                                      message: errorObj.error,
-                                      buttonAction: nil,
-                                      buttonText: "Okay",
-                                      buttonStyle: .default)
-                } else {
-                    if response.error != nil {
-                        self.showAlertBox(title: "Connection error",
-                                          message: "Can't connect to the server",
-                                          buttonAction: { _ in self.decideToClose(toPerform: toPerform)},
-                                          buttonText: "Okay",
-                                          buttonStyle: .default)
-                    } else {
-                        if !self.isEditMode {
-                            self.dismissNavigation()
-                        } else {
-                            let viewControllers: [UIViewController] =
-                            self.navigationController!.viewControllers as [UIViewController]
-                            self.navigationController!.popToViewController(
-                                viewControllers[viewControllers.count - 3], animated: true)
-                        }
-                        self.sendRefreshNotification()
-                    }
-                }
-            }
-        }
+        vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
+                                               constant: -40).isActive = true
+        vStackContainer.centerXAnchor.constraint(equalTo: mainScrollView.centerXAnchor).isActive = true
+        vStackContainer.topAnchor.constraint(equalTo: mainScrollView.topAnchor).isActive = true
+        vStackContainer.leftAnchor.constraint(equalTo: mainScrollView.leftAnchor, constant: 20).isActive = true
+        vStackContainer.rightAnchor.constraint(equalTo: mainScrollView.rightAnchor).isActive = true
+        vStackContainer.bottomAnchor.constraint(equalTo: mainScrollView.bottomAnchor).isActive = true
     }
 }

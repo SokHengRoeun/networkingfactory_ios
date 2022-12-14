@@ -94,6 +94,7 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
     }
     @objc func editFileOnclick() {
         let destinationScene = FolderEditViewController()
+        destinationScene.requestFromRoot = false
         destinationScene.isEditMode = true
         destinationScene.folderEditObject = folderEditObject
         navigationController?.pushViewController(destinationScene, animated: true)
