@@ -11,19 +11,21 @@ class MainCollectionViewCell: UICollectionViewCell {
     var mainIcon: UIImageView = {
         let myImage = UIImageView()
         myImage.contentMode = .scaleAspectFit
+        myImage.image = UIImage(systemName: "folder.fill")?.withTintColor(UIColor.link,
+                                                                          renderingMode: .alwaysOriginal)
         return myImage
     }()
     var folderLabel: UILabel = {
         let myLabel = UILabel()
         myLabel.font = .boldSystemFont(ofSize: 15)
-        myLabel.textColor = UIColor.white
+        myLabel.textColor = UIColor.link
         myLabel.textAlignment = .center
         return myLabel
     }()
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = UIColor.blue
-        contentView.hasRoundCorner(theCornerRadius: 10)
+        contentView.backgroundColor = UIColor.white
+        contentView.hasBorderOutline(outlineColor: UIColor.link.cgColor, outlineWidth: 1, cornerRadius: 13.5)
         contentView.addSubview(mainIcon)
         contentView.addSubview(folderLabel)
         configurateConstraints()

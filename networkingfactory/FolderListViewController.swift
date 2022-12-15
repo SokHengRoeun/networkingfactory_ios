@@ -39,38 +39,27 @@ class FolderListViewController: UIViewController {
         let myImage = UIImageView()
         myImage.image = UIImage(
             systemName: "questionmark.folder.fill")?.withTintColor(UIColor.lightGray,
-                                                                         renderingMode: .alwaysOriginal)
+                                                                   renderingMode: .alwaysOriginal)
         myImage.contentMode = .scaleAspectFit
         myImage.translatesAutoresizingMaskIntoConstraints = false
         myImage.heightAnchor.constraint(equalToConstant: 100).isActive = true
         myImage.widthAnchor.constraint(equalToConstant: 100).isActive = true
         return myImage
     }()
-    // Alert Loading Uploading LMAO
-    let loadingAlertView = UIAlertController(title: nil, message: "Loading ...", preferredStyle: .alert)
-    let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    var refreshControl = UIRefreshControl()
     func serverNotRespondAction() {
-        dismissLoadingAlert()
         if !self.gotRespondFromServer {
             self.emptyIconImage.image = UIImage(
                 systemName: "icloud.slash.fill")?.withTintColor(UIColor.red,
-                                                           renderingMode: .alwaysOriginal)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self.showAlertBox(title: "Server not response", message: "Can't connect to the server",
-                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-            }
-        }
-    }
-    func dismissLoadingAlert() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.loadingAlertView.dismiss(animated: true)
+                                                                renderingMode: .alwaysOriginal)
+            self.showAlertBox(title: "Server not response", message: "Can't connect to the server",
+                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
     }
     override func viewDidLoad() {
         super.viewDidLoad()
         notificationListenSystem()
-        AppFileManager.shared.clearTempCache()
+        AppFileManager.shared.initOnStart()
         getAllFolder()
         let collectionLayout = UICollectionViewFlowLayout()
         collectionLayout.scrollDirection = .vertical
@@ -95,20 +84,17 @@ class FolderListViewController: UIViewController {
         let addFolderButton = UIBarButtonItem(image: UIImage(systemName: "folder.badge.plus"),
                                               style: .done, target: self, action: #selector(addFolderOnclick))
         let downFolderButton = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.down"),
-                                              style: .done, target: self, action: #selector(downFolderOnclick))
+                                               style: .done, target: self, action: #selector(downFolderOnclick))
         self.navigationItem.setRightBarButtonItems([addFolderButton, downFolderButton], animated: true)
         self.navigationItem.setHidesBackButton(true, animated: true)
         view.addSubview(mainCollectionView!)
         mainCollectionView!.dataSource = self
         mainCollectionView!.delegate = self
         mainCollectionView!.register(MainCollectionViewCell.self, forCellWithReuseIdentifier: "MainCell")
+        mainCollectionView!.addSubview(refreshControl)
+        mainCollectionView!.alwaysBounceVertical = true
         view.addSubview(emptyIconImage)
-        // LoadingIndicator >>>>>>>>>>>>>>>>>>>>>>>>>>>
-        loadingIndicator.hidesWhenStopped = true
-        loadingIndicator.style = UIActivityIndicatorView.Style.medium
-        loadingIndicator.startAnimating()
-        loadingAlertView.view.addSubview(loadingIndicator)
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^
+        refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
         configureGeneralConstraint()
     }
     @objc func signoutOnclick() {
@@ -144,7 +130,6 @@ class FolderListViewController: UIViewController {
     @objc func getAllFolder() { // swiftlint:disable:this function_body_length
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
-        present(loadingAlertView, animated: true)
         AF.request("\(OurServer.serverIP)get_folder",
                    method: .get,
                    headers: apiHeaderToken).response { response in
@@ -153,13 +138,14 @@ class FolderListViewController: UIViewController {
             case .failure(let error):
                 self.gotRespondFromServer = false
                 self.serverNotRespondAction()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.showAlertBox(title: "Login Error",
-                                      message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
-                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                }
+                self.showAlertBox(title: "Login Error",
+                                  message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
+                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
             case .success(let data):
                 print(data!)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.refreshControl.endRefreshing()
+                }
             }
             // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             if let data = response.data {
@@ -167,45 +153,34 @@ class FolderListViewController: UIViewController {
                 if json!.contains("\"error\"") {
                     var errorObj = ErrorObject()
                     errorObj = try! JSONDecoder().decode(ErrorObject.self, from: data)
-                    self.dismissLoadingAlert()
                     self.gotRespondFromServer = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.showAlertBox(title: "Data error", message: errorObj.error,
-                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                    }
+                    self.showAlertBox(title: "Data error", message: errorObj.error,
+                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                 } else {
                     if response.error != nil {
-                        self.dismissLoadingAlert()
                         self.gotRespondFromServer = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
-                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                        }
+                        self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     } else {
                         do {
                             self.userFullData = try JSONDecoder().decode(FullFolderData.self, from: data)
                             self.mainCollectionView!.reloadData()
                             self.emptyIconImage.isHidden = true
-                            self.dismissLoadingAlert()
                             self.gotRespondFromServer = true
                         } catch {
                             if !(String(data: data, encoding: .utf8)!.contains("{\"count\":0}")) {
-                                self.dismissLoadingAlert()
                                 self.gotRespondFromServer = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    self.showAlertBox(title: "Data error",
-                                                      message: "User's data did not load properly",
-                                                      buttonAction: { _ in
-                                        self.navigationController?.popViewController(animated: true) },
-                                                      buttonText: "Okay",
-                                                      buttonStyle: .default)
-                                }
+                                self.showAlertBox(title: "Data error",
+                                                  message: "User's data did not load properly",
+                                                  buttonAction: { _ in
+                                    self.navigationController?.popViewController(animated: true) },
+                                                  buttonText: "Okay",
+                                                  buttonStyle: .default)
                             } else {
-                                self.dismissLoadingAlert()
                                 self.gotRespondFromServer = true
                                 self.emptyIconImage.isHidden = false
                                 self.userFullData.page.count = 0
-                                self.mainCollectionView?.reloadData()
+                                self.mainCollectionView!.reloadData()
                             }
                         }
                     }
@@ -223,8 +198,6 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                         cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = mainCollectionView!.dequeueReusableCell(
             withReuseIdentifier: "MainCell", for: indexPath) as! MainCollectionViewCell
-        cell.mainIcon.image = UIImage(systemName: "folder.fill")?.withTintColor(UIColor.white,
-                                                                                renderingMode: .alwaysOriginal)
         cell.folderLabel.text = userFullData.data[indexPath.row].name
         return cell
     }
@@ -244,11 +217,49 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         configureContextMenu(index: indexPath.row)
     }
     func notificationListenSystem() {
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(getAllFolder),
+        NotificationCenter.default.addObserver(self, selector: #selector(getAllFolder),
                                                name: Notification.Name(rawValue: "refreshView"),
-                                               object: nil
-        )
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(deleteFolder(_:)),
+                                               name: Notification.Name(rawValue: "delete_folder"),
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(addFolder),
+                                               name: Notification.Name(rawValue: "create_folder"),
+                                               object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateFolder),
+                                               name: Notification.Name(rawValue: "update_folder"),
+                                               object: nil)
+    }
+    @objc func addFolder(_ notification: NSNotification) {
+        if userFullData.page.count == 0 && userFullData.data.count > 0 {
+            userFullData.data = [ApiFolders]()
+        }
+        userFullData.page.count += 1
+        let tempApiObject = notification.object as! ApiFolders
+        userFullData.data.insert(tempApiObject, at: Base64Encode.shared.minusOne(userFullData.data.count))
+        mainCollectionView!.insertItems(at: [IndexPath(row: Base64Encode.shared.minusOne(userFullData.data.count),
+                                                       section: 0)])
+        emptyIconImage.isHidden = true
+    }
+    @objc func updateFolder(_ notification: NSNotification) {
+        let tempApiObject = notification.object as! ApiFolders
+        for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
+            userFullData.data[indexx] = tempApiObject
+            mainCollectionView!.reloadData()
+            break
+        }
+    }
+    @objc func deleteFolder(_ notification: NSNotification) {
+        let tempApiObject = notification.object as! ApiFolders
+        for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
+            userFullData.page.count -= 1
+            userFullData.data.remove(at: indexx)
+            mainCollectionView!.deleteItems(at: [IndexPath(row: indexx, section: 0)])
+            break
+        }
+        if userFullData.page.count <= 1 {
+            emptyIconImage.isHidden = false
+        }
     }
     func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
         let tempApi = FolderEditCreateObject(_id: userFullData.data[index]._id,
@@ -270,6 +281,9 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                                   identifier: nil, discoverabilityTitle: nil,
                                   attributes: .destructive, state: .off) { (_) in
                 OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
+                if self.userFullData.page.count <= 1 {
+                    self.emptyIconImage.isHidden = false
+                }
             }
             return UIMenu(title: "", image: nil, identifier: nil,
                           options: UIMenu.Options.displayInline, children: [edit, delete])

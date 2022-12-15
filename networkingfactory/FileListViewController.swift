@@ -12,7 +12,7 @@
 
 import UIKit
 import Alamofire
-import UniformTypeIdentifiers
+import QuickLook
 
 struct FullFilesData: Codable {
     var page = ApiPage(first: "", last: "", count: 0)
@@ -32,6 +32,7 @@ struct ApiFiles: Codable {
 }
 
 class FileListViewController: UIViewController, UINavigationControllerDelegate {
+    var fileUrlToPreview = URL(string: "")
     // Detect weither view is on Download view mode or regular mode :
     var isDownloadMode = false
     var allFilesDownloaded = [String]()
@@ -59,6 +60,7 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
     // Alert Loading Uploading LMAO
     let loadingAlertView = UIAlertController(title: nil, message: "Loading ...", preferredStyle: .alert)
     let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
+    let refreshControl = UIRefreshControl()
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,6 +79,7 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
             navigationItem.setRightBarButton(editFolderButton, animated: true)
             view.addSubview(uploadButton)
             uploadButton.addTarget(self, action: #selector(uploadFileOnclick), for: .touchUpInside)
+            mainTableView.addSubview(refreshControl)
             emptyIconImage.image = UIImage(
                 systemName: "questionmark.square.dashed")?.withTintColor(UIColor.lightGray,
                                                                          renderingMode: .alwaysOriginal)
@@ -88,6 +91,7 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
         mainTableView.register(MainTableViewCell.self, forCellReuseIdentifier: "MainCell")
         mainTableView.delegate = self
         mainTableView.dataSource = self
+        refreshControl.addTarget(self, action: #selector(refresherLoader), for: UIControl.Event.valueChanged)
         view.addSubview(mainTableView)
         view.addSubview(emptyIconImage)
         configureGeneralConstraints()
@@ -265,9 +269,11 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     // Function to open preview screen and load the data
     func openPreviewScreen(fileName: String) {
-        let destinationScene = FilePreviewerViewController()
-        destinationScene.fileName = fileName
-        navigationController?.pushViewController(destinationScene, animated: true)
+        let fileDir = AppFileManager.shared.fileDirectoryURL
+        fileUrlToPreview = fileDir.appending(path: "download/\(fileName)")
+        let previewController = QLPreviewController()
+        previewController.dataSource = self
+        present(previewController, animated: true)
     }
     // More code XD :
     func notificationListenSystem() {
@@ -328,7 +334,9 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
         }
         userFileFullData.page.count += 1
         mainTableView.reloadData()
-        OurServer.shared.uploadDocumentFromURL(fileURL: url, viewCont: self, arrIndex: userFileFullData.page.count)
+        OurServer.shared.uploadDocumentFromURL(
+            fileURL: AppFileManager.shared.saveFileForUpload(fileUrl: url),
+            viewCont: self, arrIndex: userFileFullData.page.count)
         controller.dismiss(animated: true)
     }
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
@@ -350,16 +358,28 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
         if let pickedImage = info[UIImagePickerController.InfoKey(
             rawValue: "UIImagePickerControllerEditedImage")] as? UIImage {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                let fileUrl = AppFileManager.shared.fileDirectoryURL
-                AppFileManager.shared.createFileTemp(fileName: randomName,
-                                                 fileData: pickedImage.jpegData(compressionQuality: 1)!)
-                OurServer.shared.uploadDocumentFromURL(fileURL: fileUrl.appending(path: "temp/\(randomName)"),
-                                                       viewCont: self, arrIndex: self.userFileFullData.page.count)
+                let appFM = AppFileManager.shared
+                let appServer = OurServer.shared
+                let fileUrl = appFM.fileDirectoryURL
+                appFM.createFileTemp(fileName: randomName,
+                                     fileData: pickedImage.jpegData(compressionQuality: 1)!)
+                appServer.uploadDocumentFromURL(fileURL: appFM.saveFileForUpload(
+                    fileUrl: fileUrl.appending(path: "temp/\(randomName)")),
+                                                viewCont: self, arrIndex: self.userFileFullData.page.count)
             }
         }
         picker.dismiss(animated: true)
     }
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
+    }
+}
+
+extension FileListViewController: QLPreviewControllerDataSource {
+    func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+        return 1
+    }
+    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+        return fileUrlToPreview! as QLPreviewItem
     }
 }

@@ -192,11 +192,18 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
     @objc func taptapAction() {
         view.endEditing(true)
     }
-    func sendRefreshNotification() {
+//    func sendRefreshNotification() {
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+//            NotificationCtype_body_lengthenter.default.post(Notification(
+//                name: Notification.Name(rawValue: "refreshView"),
+//                object: nil))
+//        }
+//    }
+    func sendFolderNotification(toPerform: String, theObject: ApiFolders) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NotificationCenter.default.post(Notification(
-                name: Notification.Name(rawValue: "refreshView"),
-                object: nil))
+                name: Notification.Name(rawValue: "\(toPerform)_folder"),
+                object: theObject))
         }
     }
     @objc func deleteButtonOnclick() {
@@ -217,7 +224,6 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
     func decideToClose(toPerform: String) {
         if toPerform.lowercased() == "delete" {
             dismissNavigation()
-            sendRefreshNotification()
         }
     }
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
