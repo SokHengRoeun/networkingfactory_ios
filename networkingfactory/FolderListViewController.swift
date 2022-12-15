@@ -46,15 +46,36 @@ class FolderListViewController: UIViewController {
         myImage.widthAnchor.constraint(equalToConstant: 100).isActive = true
         return myImage
     }()
+    var vStackContainer: UIStackView = {
+        let myStack = UIStackView()
+        myStack.axis = .vertical
+        myStack.spacing = 10
+        return myStack
+    }()
+    var cannotOpenLabel: UILabel = {
+        let myLabel = UILabel()
+        myLabel.text = "Server not respond"
+        myLabel.textColor = UIColor.systemRed
+        myLabel.font = .boldSystemFont(ofSize: 17)
+        myLabel.textAlignment = .center
+        return myLabel
+    }()
     var refreshControl = UIRefreshControl()
     func serverNotRespondAction() {
-        if !self.gotRespondFromServer {
-            self.emptyIconImage.image = UIImage(
-                systemName: "icloud.slash.fill")?.withTintColor(UIColor.red,
-                                                                renderingMode: .alwaysOriginal)
-            self.showAlertBox(title: "Server not response", message: "Can't connect to the server",
-                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-        }
+        gotRespondFromServer = false
+        emptyIconImage.image = UIImage(
+            systemName: "icloud.slash.fill")?.withTintColor(UIColor.red,
+                                                            renderingMode: .alwaysOriginal)
+        cannotOpenLabel.isHidden = false
+        showAlertBox(title: "Server not response", message: "Can't connect to the server",
+                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+    }
+    func serverRespondAction() {
+        gotRespondFromServer = true
+        emptyIconImage.image = UIImage(
+            systemName: "questionmark.folder.fill")?.withTintColor(UIColor.lightGray,
+                                                                   renderingMode: .alwaysOriginal)
+        cannotOpenLabel.isHidden = true
     }
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -93,7 +114,9 @@ class FolderListViewController: UIViewController {
         mainCollectionView!.register(MainCollectionViewCell.self, forCellWithReuseIdentifier: "MainCell")
         mainCollectionView!.addSubview(refreshControl)
         mainCollectionView!.alwaysBounceVertical = true
-        view.addSubview(emptyIconImage)
+        view.addSubview(vStackContainer)
+        vStackContainer.addArrangedSubview(emptyIconImage)
+        vStackContainer.addArrangedSubview(cannotOpenLabel)
         refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
         configureGeneralConstraint()
     }
@@ -127,6 +150,11 @@ class FolderListViewController: UIViewController {
     func dismissNavigation() {
         navigationController?.popViewController(animated: true)
     }
+    func dismissRefreshing() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.refreshControl.endRefreshing()
+        }
+    }
     @objc func getAllFolder() { // swiftlint:disable:this function_body_length
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
@@ -136,16 +164,19 @@ class FolderListViewController: UIViewController {
             // Check if the connection success or fail
             switch response.result {
             case .failure(let error):
-                self.gotRespondFromServer = false
                 self.serverNotRespondAction()
                 self.showAlertBox(title: "Login Error",
                                   message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
                                   buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                self.userFullData.data = [ApiFolders]()
+                self.userFullData.page.count = 0
+                self.mainCollectionView!.reloadData()
+                self.dismissRefreshing()
             case .success(let data):
                 print(data!)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    self.refreshControl.endRefreshing()
-                }
+                self.serverRespondAction()
+                self.mainCollectionView!.reloadData()
+                self.dismissRefreshing()
             }
             // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             if let data = response.data {
@@ -165,7 +196,7 @@ class FolderListViewController: UIViewController {
                         do {
                             self.userFullData = try JSONDecoder().decode(FullFolderData.self, from: data)
                             self.mainCollectionView!.reloadData()
-                            self.emptyIconImage.isHidden = true
+                            self.vStackContainer.isHidden = true
                             self.gotRespondFromServer = true
                         } catch {
                             if !(String(data: data, encoding: .utf8)!.contains("{\"count\":0}")) {
@@ -178,7 +209,7 @@ class FolderListViewController: UIViewController {
                                                   buttonStyle: .default)
                             } else {
                                 self.gotRespondFromServer = true
-                                self.emptyIconImage.isHidden = false
+                                self.vStackContainer.isHidden = false
                                 self.userFullData.page.count = 0
                                 self.mainCollectionView!.reloadData()
                             }
@@ -239,7 +270,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         userFullData.data.insert(tempApiObject, at: Base64Encode.shared.minusOne(userFullData.data.count))
         mainCollectionView!.insertItems(at: [IndexPath(row: Base64Encode.shared.minusOne(userFullData.data.count),
                                                        section: 0)])
-        emptyIconImage.isHidden = true
+        vStackContainer.isHidden = true
     }
     @objc func updateFolder(_ notification: NSNotification) {
         let tempApiObject = notification.object as! ApiFolders
@@ -258,7 +289,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             break
         }
         if userFullData.page.count <= 1 {
-            emptyIconImage.isHidden = false
+            vStackContainer.isHidden = false
         }
     }
     func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
@@ -282,7 +313,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                                   attributes: .destructive, state: .off) { (_) in
                 OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
                 if self.userFullData.page.count <= 1 {
-                    self.emptyIconImage.isHidden = false
+                    self.vStackContainer.isHidden = false
                 }
             }
             return UIMenu(title: "", image: nil, identifier: nil,
@@ -298,9 +329,14 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                                                   constant: 7).isActive = true
         mainCollectionView!.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor,
                                                    constant: -7).isActive = true
-        emptyIconImage.centerXAnchor.constraint(
+        vStackContainer.centerXAnchor.constraint(
             equalTo: view.safeAreaLayoutGuide.centerXAnchor).isActive = true
-        emptyIconImage.centerYAnchor.constraint(
+        vStackContainer.centerYAnchor.constraint(
             equalTo: view.safeAreaLayoutGuide.centerYAnchor).isActive = true
+        vStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        vStackContainer.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor).isActive = true
+        vStackContainer.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor).isActive = true
+        vStackContainer.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
+        vStackContainer.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
     }
 }
