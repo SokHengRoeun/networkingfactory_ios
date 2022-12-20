@@ -53,18 +53,6 @@ class AppFileManager {
         }
         return tempData
     }
-    // For caches or temp files
-    func createFileTemp(fileName: String, fileData: Data) {
-        let tempPath = fileDirectoryURL.appending(path: "temp").path()
-        let tempFilePath = fileDirectoryURL.appending(path: "temp/\(fileName)").path()
-        do {
-            try fManager.createDirectory(atPath: tempPath,
-                                         withIntermediateDirectories: true)
-        } catch {
-            print(">> Try to create \"temp\" folder but it already existed, LMAO")
-        }
-        fManager.createFile(atPath: tempFilePath, contents: fileData)
-    }
     func initOnStart() {
         // Create Download folder if it doesn't exist
         do {
@@ -73,12 +61,6 @@ class AppFileManager {
                                          withIntermediateDirectories: true)
         } catch {
             print(">> Try to create Download Folder but it already exist.")
-        }
-        // Clear Temp Cache
-        do {
-            try fManager.removeItem(at: fileDirectoryURL.appending(path: "temp"))
-        } catch {
-            print(">> Try to delete \"temp\" folder but it already gone.")
         }
     }
     // save download files
@@ -97,6 +79,8 @@ class AppFileManager {
         cell.sizeNameLabel.text = "file downloaded"
         cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
         cell.loadingProgressBar.isHidden = true
+        cell.downIconImage.isHidden = false
+        cell.spinIndicator.isHidden = true
         cell.sizeNameLabel.isHidden = false
     }
     func getAllFilesDownload(viewCont: UIViewController) -> [String] {

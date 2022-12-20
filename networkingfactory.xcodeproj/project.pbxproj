@@ -8,10 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		8406494B2949CF260080D752 /* Base64Encode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8406494A2949CF260080D752 /* Base64Encode.swift */; };
-		8406494D2949CF640080D752 /* OurServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8406494C2949CF640080D752 /* OurServer.swift */; };
+		8406494D2949CF640080D752 /* ServerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8406494C2949CF640080D752 /* ServerManager.swift */; };
 		8406494F2949CFAC0080D752 /* AppFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8406494E2949CFAC0080D752 /* AppFileManager.swift */; };
 		841F3224292F4BC0001CAEE4 /* super_extension_pack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 841F3223292F4BC0001CAEE4 /* super_extension_pack.swift */; };
-		842F73322935B8FA00246936 /* FolderEditViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842F73312935B8FA00246936 /* FolderEditViewController.swift */; };
+		842F73322935B8FA00246936 /* AddFolderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842F73312935B8FA00246936 /* AddFolderViewController.swift */; };
+		844673C1294D6A9200600109 /* InputFieldManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 844673C0294D6A9200600109 /* InputFieldManager.swift */; };
 		847BD419292DCB93008E1044 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD418292DCB93008E1044 /* AppDelegate.swift */; };
 		847BD41B292DCB93008E1044 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD41A292DCB93008E1044 /* SceneDelegate.swift */; };
 		847BD41D292DCB93008E1044 /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD41C292DCB93008E1044 /* LoginViewController.swift */; };
@@ -22,17 +23,24 @@
 		847BD431292E102D008E1044 /* RegisterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD430292E102D008E1044 /* RegisterViewController.swift */; };
 		84B491062936FEDE00DEF3A4 /* FileListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B491052936FEDE00DEF3A4 /* FileListViewController.swift */; };
 		84B4910829372D7500DEF3A4 /* MainTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B4910729372D7500DEF3A4 /* MainTableViewCell.swift */; };
+		84C97A20294C2AD50093508F /* FileDownloadListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A1F294C2AD50093508F /* FileDownloadListViewController.swift */; };
+		84C97A22294C5B7D0093508F /* EditFolderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A21294C5B7D0093508F /* EditFolderViewController.swift */; };
+		84C97A24294C60430093508F /* AllObjectStruct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A23294C60430093508F /* AllObjectStruct.swift */; };
+		84C97A26294C65AA0093508F /* IconManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A25294C65AA0093508F /* IconManager.swift */; };
+		84C97A28294C6A8D0093508F /* ConstraintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A27294C6A8D0093508F /* ConstraintManager.swift */; };
 		84CD19412934ADE000725652 /* MainCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CD19402934ADE000725652 /* MainCollectionViewCell.swift */; };
 		84EC30182930779100D17164 /* FolderListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84EC30172930779100D17164 /* FolderListViewController.swift */; };
+		84ECAC01295001BF00E0E9D4 /* ActionSheetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84ECAC00295001BF00E0E9D4 /* ActionSheetManager.swift */; };
 		97F5F57509F535F67BBE86A3 /* Pods_networkingfactory.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 875A5377824DC3B6755E084F /* Pods_networkingfactory.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		8406494A2949CF260080D752 /* Base64Encode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Base64Encode.swift; sourceTree = "<group>"; };
-		8406494C2949CF640080D752 /* OurServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OurServer.swift; sourceTree = "<group>"; };
+		8406494C2949CF640080D752 /* ServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerManager.swift; sourceTree = "<group>"; };
 		8406494E2949CFAC0080D752 /* AppFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFileManager.swift; sourceTree = "<group>"; };
 		841F3223292F4BC0001CAEE4 /* super_extension_pack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = super_extension_pack.swift; sourceTree = "<group>"; };
-		842F73312935B8FA00246936 /* FolderEditViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderEditViewController.swift; sourceTree = "<group>"; };
+		842F73312935B8FA00246936 /* AddFolderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFolderViewController.swift; sourceTree = "<group>"; };
+		844673C0294D6A9200600109 /* InputFieldManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputFieldManager.swift; sourceTree = "<group>"; };
 		847BD415292DCB93008E1044 /* networkingfactory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = networkingfactory.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		847BD418292DCB93008E1044 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		847BD41A292DCB93008E1044 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -45,8 +53,14 @@
 		847BD430292E102D008E1044 /* RegisterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterViewController.swift; sourceTree = "<group>"; };
 		84B491052936FEDE00DEF3A4 /* FileListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListViewController.swift; sourceTree = "<group>"; };
 		84B4910729372D7500DEF3A4 /* MainTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTableViewCell.swift; sourceTree = "<group>"; };
+		84C97A1F294C2AD50093508F /* FileDownloadListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDownloadListViewController.swift; sourceTree = "<group>"; };
+		84C97A21294C5B7D0093508F /* EditFolderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditFolderViewController.swift; sourceTree = "<group>"; };
+		84C97A23294C60430093508F /* AllObjectStruct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllObjectStruct.swift; sourceTree = "<group>"; };
+		84C97A25294C65AA0093508F /* IconManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconManager.swift; sourceTree = "<group>"; };
+		84C97A27294C6A8D0093508F /* ConstraintManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConstraintManager.swift; sourceTree = "<group>"; };
 		84CD19402934ADE000725652 /* MainCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCollectionViewCell.swift; sourceTree = "<group>"; };
 		84EC30172930779100D17164 /* FolderListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderListViewController.swift; sourceTree = "<group>"; };
+		84ECAC00295001BF00E0E9D4 /* ActionSheetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSheetManager.swift; sourceTree = "<group>"; };
 		875A5377824DC3B6755E084F /* Pods_networkingfactory.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_networkingfactory.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC89EAFA72C63F7966D17F62 /* Pods-networkingfactory.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-networkingfactory.release.xcconfig"; path = "Target Support Files/Pods-networkingfactory/Pods-networkingfactory.release.xcconfig"; sourceTree = "<group>"; };
 		EDDF1DECC7A3D21D80DB79DE /* Pods-networkingfactory.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-networkingfactory.debug.xcconfig"; path = "Target Support Files/Pods-networkingfactory/Pods-networkingfactory.debug.xcconfig"; sourceTree = "<group>"; };
@@ -102,14 +116,21 @@
 				841F3223292F4BC0001CAEE4 /* super_extension_pack.swift */,
 				8406494A2949CF260080D752 /* Base64Encode.swift */,
 				8406494E2949CFAC0080D752 /* AppFileManager.swift */,
-				8406494C2949CF640080D752 /* OurServer.swift */,
+				8406494C2949CF640080D752 /* ServerManager.swift */,
+				84C97A23294C60430093508F /* AllObjectStruct.swift */,
+				84C97A25294C65AA0093508F /* IconManager.swift */,
+				84C97A27294C6A8D0093508F /* ConstraintManager.swift */,
+				844673C0294D6A9200600109 /* InputFieldManager.swift */,
 				847BD424292DCB96008E1044 /* Assets.xcassets */,
 				847BD41C292DCB93008E1044 /* LoginViewController.swift */,
 				847BD430292E102D008E1044 /* RegisterViewController.swift */,
 				84EC30172930779100D17164 /* FolderListViewController.swift */,
 				84B491052936FEDE00DEF3A4 /* FileListViewController.swift */,
-				842F73312935B8FA00246936 /* FolderEditViewController.swift */,
+				84C97A1F294C2AD50093508F /* FileDownloadListViewController.swift */,
+				842F73312935B8FA00246936 /* AddFolderViewController.swift */,
+				84C97A21294C5B7D0093508F /* EditFolderViewController.swift */,
 				847BD426292DCB96008E1044 /* LaunchScreen.storyboard */,
+				84ECAC00295001BF00E0E9D4 /* ActionSheetManager.swift */,
 				847BD41E292DCB93008E1044 /* Main.storyboard */,
 			);
 			path = networkingfactory;
@@ -258,17 +279,24 @@
 			buildActionMask = 2147483647;
 			files = (
 				84B4910829372D7500DEF3A4 /* MainTableViewCell.swift in Sources */,
+				84C97A24294C60430093508F /* AllObjectStruct.swift in Sources */,
 				84EC30182930779100D17164 /* FolderListViewController.swift in Sources */,
 				847BD41D292DCB93008E1044 /* LoginViewController.swift in Sources */,
-				8406494D2949CF640080D752 /* OurServer.swift in Sources */,
+				8406494D2949CF640080D752 /* ServerManager.swift in Sources */,
+				84ECAC01295001BF00E0E9D4 /* ActionSheetManager.swift in Sources */,
+				844673C1294D6A9200600109 /* InputFieldManager.swift in Sources */,
+				84C97A20294C2AD50093508F /* FileDownloadListViewController.swift in Sources */,
 				84B491062936FEDE00DEF3A4 /* FileListViewController.swift in Sources */,
 				847BD419292DCB93008E1044 /* AppDelegate.swift in Sources */,
+				84C97A26294C65AA0093508F /* IconManager.swift in Sources */,
 				841F3224292F4BC0001CAEE4 /* super_extension_pack.swift in Sources */,
-				842F73322935B8FA00246936 /* FolderEditViewController.swift in Sources */,
+				842F73322935B8FA00246936 /* AddFolderViewController.swift in Sources */,
 				847BD423292DCB93008E1044 /* networkingfactory.xcdatamodeld in Sources */,
+				84C97A22294C5B7D0093508F /* EditFolderViewController.swift in Sources */,
 				84CD19412934ADE000725652 /* MainCollectionViewCell.swift in Sources */,
 				847BD431292E102D008E1044 /* RegisterViewController.swift in Sources */,
 				847BD41B292DCB93008E1044 /* SceneDelegate.swift in Sources */,
+				84C97A28294C6A8D0093508F /* ConstraintManager.swift in Sources */,
 				8406494F2949CFAC0080D752 /* AppFileManager.swift in Sources */,
 				8406494B2949CF260080D752 /* Base64Encode.swift in Sources */,
 			);

@@ -5,23 +5,13 @@
 //  Created by SokHeng on 29/11/22.
 //
 
-// swiftlint:disable function_body_length
-// swiftlint:disable identifier_name
+// swiftlint:disable force_cast
 
 import UIKit
 import Alamofire
 
-struct FolderEditCreateObject: Codable {
-    var _id: String
-    var name: String
-    var description: String
-    var token: String
-}
-
-class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
+class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
     var requestFromRoot = false
-    var isEditMode = false
-    var editAtIndex = 0
     var folderEditObject = FolderEditCreateObject(_id: "", name: "", description: "", token: "")
     // UI elements :
     var vStackContainer: UIStackView = {
@@ -81,26 +71,10 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
     var mainScrollView = UIScrollView()
     override func viewDidLoad() {
         super.viewDidLoad()
+        initStart()
         view.backgroundColor = UIColor.white
-        if isEditMode {
-            title = "Edit Folder"
-            summitButton.setTitle("Update folder", for: .normal)
-        } else {
-            title = "Create Folder"
-            summitButton.setTitle("Create folder", for: .normal)
-        }
         view.addSubview(mainScrollView)
         mainScrollView.addSubview(vStackContainer)
-        if isEditMode {
-            let deleteBarButton = UIBarButtonItem(title: "Delete", style: .done,
-                                                  target: self, action: #selector(deleteButtonOnclick))
-            deleteBarButton.tintColor = UIColor.red
-            navigationItem.setRightBarButton(deleteBarButton, animated: true)
-            headerIcon.image = UIImage(systemName: "folder.fill.badge.gearshape")
-            // Input Text Text :
-            folderNameInputfield.text = folderEditObject.name
-            folderDescriptionInputfield.text = folderEditObject.description
-        }
         vStackContainer.addArrangedSubview(headerIcon)
         vStackContainer.addArrangedSubview(folderNameLabel)
         vStackContainer.addArrangedSubview(folderNameInputfield)
@@ -118,6 +92,10 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
                                        name: UIResponder.keyboardWillHideNotification, object: nil)
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    func initStart () {
+        title = "Create Folder"
+        summitButton.setTitle("Create folder", for: .normal)
     }
     @objc func adjustForKeyboard(notification: Notification) {
         guard let keyboardValue =
@@ -140,65 +118,30 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
         }
     }
     @objc func editOrCreateFolderAction() {
-        if isEditMode {
-            if allInputHaveValue() {
-                if !(hasSpecialCharacter(theString: folderNameInputfield.text! + folderDescriptionInputfield.text!)) {
-                    let tempApi = FolderEditCreateObject(_id: folderEditObject._id,
-                                                            name: folderNameInputfield.text!,
-                                                            description: folderDescriptionInputfield.text!,
-                                                            token: folderEditObject.token)
-                    OurServer.shared.folderRequestAction(toPerform: "update", apiRequest: tempApi, viewCon: self)
-                } else {
-                    showAlertBox(title: "Invalid character",
-                                 message: "Your folder information should not contain special character",
-                                 buttonAction: nil,
-                                 buttonText: "Okay",
-                                 buttonStyle: .default)
-                }
+        let inputManager = InputFieldManager.shared
+        if allInputHaveValue() {
+            if !(inputManager.hasSpecialCharacter(theString: folderNameInputfield.text!)) {
+                let tempApi = FolderEditCreateObject(_id: "\(Int.random(in: 0...9999999))" +
+                                                     "_\(folderNameInputfield.text!)",
+                                                     name: folderNameInputfield.text!,
+                                                     description: folderDescriptionInputfield.text!,
+                                                     token: folderEditObject.token)
+                ServerManager.shared.folderRequestAction(toPerform: "create", apiRequest: tempApi, viewCon: self)
             } else {
-                showAlertBox(title: "Can't create folder",
-                                  message: "Please provide all information to create a folder. Do not leave any of them empty!", // swiftlint:disable:this line_length
-                                  buttonAction: nil,
-                                  buttonText: "Okay",
-                                  buttonStyle: .default)
+                showAlertBox(title: "Invalid character",
+                             message: "Your folder information should not contain special character",
+                             buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
             }
-            highlightEmptyInputfield()
         } else {
-            if allInputHaveValue() {
-                if !(hasSpecialCharacter(theString: folderNameInputfield.text! + folderDescriptionInputfield.text!)) {
-                    let tempApi = FolderEditCreateObject(_id: "\(Int.random(in: 0...9999999))" +
-                                                            "_\(folderNameInputfield.text!)",
-                                                            name: folderNameInputfield.text!,
-                                                            description: folderDescriptionInputfield.text!,
-                                                            token: folderEditObject.token)
-                    OurServer.shared.folderRequestAction(toPerform: "create", apiRequest: tempApi, viewCon: self)
-                } else {
-                    showAlertBox(title: "Invalid character",
-                                 message: "Your folder information should not contain special character",
-                                 buttonAction: nil,
-                                 buttonText: "Okay",
-                                 buttonStyle: .default)
-                }
-            } else {
-                showAlertBox(title: "Can't create folder",
-                                  message: "Please provide all information to create a folder",
-                                  buttonAction: nil,
-                                  buttonText: "Okay",
-                                  buttonStyle: .default)
-            }
-            highlightEmptyInputfield()
+            showAlertBox(title: "Can't create folder",
+                         message: "Please provide all information to create a folder",
+                         buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
+        highlightEmptyInputfield()
     }
     @objc func taptapAction() {
         view.endEditing(true)
     }
-//    func sendRefreshNotification() {
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-//            NotificationCtype_body_lengthenter.default.post(Notification(
-//                name: Notification.Name(rawValue: "refreshView"),
-//                object: nil))
-//        }
-//    }
     func sendFolderNotification(toPerform: String, theObject: ApiFolders) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NotificationCenter.default.post(Notification(
@@ -209,17 +152,14 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
     @objc func deleteButtonOnclick() {
         showAlertBox(title: "Are you sure?",
                      message: "You are about to delete this folder.",
-                     firstButtonAction: nil,
-                     firstButtonText: "Cancel",
-                     firstButtonStyle: .cancel,
-                     secondButtonAction: { _ in
+                     firstButtonAction: nil, firstButtonText: "Cancel",
+                     firstButtonStyle: .cancel, secondButtonAction: { _ in
             let tempApi = FolderEditCreateObject(_id: self.folderEditObject._id,
                                                  name: self.folderEditObject.name,
                                                  description: self.folderEditObject.description,
                                                  token: self.folderEditObject.token)
-            OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self) },
-                     secondButtonText: "Delete",
-                     secondButtonStyle: .destructive)
+            ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self) },
+                     secondButtonText: "Delete", secondButtonStyle: .destructive)
     }
     func decideToClose(toPerform: String) {
         if toPerform.lowercased() == "delete" {
@@ -233,49 +173,33 @@ class FolderEditViewController: UIViewController, UIGestureRecognizerDelegate, U
     func highlightEmptyInputfield() {
         if folderNameInputfield.text == ""{
             folderNameInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                   outlineWidth: 1,
-                                                   cornerRadius: 5)
+                                                   outlineWidth: 1, cornerRadius: 5)
         } else {
             folderNameInputfield.hasBorderOutline(false)
         }
         if folderDescriptionInputfield.text == "" {
             folderDescriptionInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                       outlineWidth: 1,
-                                                       cornerRadius: 5
+                                                       outlineWidth: 1, cornerRadius: 5
             )
         } else {
             folderDescriptionInputfield.hasBorderOutline(false)
         }
-    }
-    func hasSpecialCharacter(theString: String) -> Bool {
-        let specialChar = ["<", "-", ">", ".", "(", ")", "+", "=", "*", "/", "[", "]", "^", "'",
-                           "{", "}", "|", "!", "@", "#", "$", "%", "&", "?", ",", ":", ";", "\"", "\\"]
-        var doHaveSpecialChar = false
-        for index in specialChar where theString.contains(index) {
-            doHaveSpecialChar = true
-        }
-        return doHaveSpecialChar
     }
     func dismissNavigation() {
         navigationController?.popViewController(animated: true)
     }
 }
 
-extension FolderEditViewController {
+extension AddFolderViewController {
     func configureGeneralContraints() {
-        mainScrollView.translatesAutoresizingMaskIntoConstraints = false
-        mainScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        mainScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-        mainScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
-        mainScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        let conManager = ConstraintManager.shared
+        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView, parent: view.safeAreaLayoutGuide,
+                                                     padding: 0) as! UIScrollView
         // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
-        vStackContainer.translatesAutoresizingMaskIntoConstraints = false
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        vStackContainer.centerXAnchor.constraint(equalTo: mainScrollView.centerXAnchor).isActive = true
-        vStackContainer.topAnchor.constraint(equalTo: mainScrollView.topAnchor).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: mainScrollView.leftAnchor, constant: 20).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: mainScrollView.rightAnchor).isActive = true
-        vStackContainer.bottomAnchor.constraint(equalTo: mainScrollView.bottomAnchor).isActive = true
+        vStackContainer = conManager.centerHorizontally(child: vStackContainer, parent: mainScrollView,
+                                                        padding: 0) as! UIStackView
+        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
     }
 }

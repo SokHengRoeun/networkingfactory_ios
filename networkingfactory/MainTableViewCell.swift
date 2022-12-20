@@ -5,6 +5,8 @@
 //  Created by SokHeng on 30/11/22.
 //
 
+// swiftlint:disable force_cast
+
 import UIKit
 
 class MainTableViewCell: UITableViewCell {
@@ -38,6 +40,7 @@ class MainTableViewCell: UITableViewCell {
         myImage.widthAnchor.constraint(equalToConstant: imageSize).isActive = true
         return myImage
     }()
+    var spinIndicator = UIActivityIndicatorView()
     var loadingProgressBar = UIProgressView()
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -45,6 +48,7 @@ class MainTableViewCell: UITableViewCell {
         contentView.addSubview(downIconImage)
         contentView.addSubview(fileNameLabel)
         contentView.addSubview(loadingProgressBar)
+        contentView.addSubview(spinIndicator)
         loadingProgressBar.tintColor = UIColor.green
         contentView.addSubview(sizeNameLabel)
         configureConstrants()
@@ -59,6 +63,7 @@ class MainTableViewCell: UITableViewCell {
 
 extension MainTableViewCell {
     func configureConstrants() {
+        let conManager = ConstraintManager.shared
         iconImage.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 10).isActive = true
         iconImage.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10).isActive = true
         fileNameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -75,5 +80,7 @@ extension MainTableViewCell {
         loadingProgressBar.centerYAnchor.constraint(equalTo: sizeNameLabel.centerYAnchor).isActive = true
         loadingProgressBar.leftAnchor.constraint(equalTo: iconImage.rightAnchor, constant: 10).isActive = true
         loadingProgressBar.rightAnchor.constraint(equalTo: downIconImage.leftAnchor, constant: -10).isActive = true
+        spinIndicator = conManager.absoluteFitToThe(child: spinIndicator, parent: downIconImage,
+                                                    padding: 0) as! UIActivityIndicatorView
     }
 }

@@ -6,28 +6,10 @@
 //
 
 // swiftlint:disable force_try
-// swiftlint:disable identifier_name
 // swiftlint:disable force_cast
 
 import UIKit
 import Alamofire
-
-struct FullFolderData: Codable {
-    var page = ApiPage(first: "", last: "", count: 0)
-    var data = [ApiFolders(_id: "", name: "", description: "", createdAt: "", updatedAt: "")]
-}
-struct ApiPage: Codable {
-    var first: String
-    var last: String
-    var count: Int
-}
-struct ApiFolders: Codable {
-    var _id: String
-    var name: String
-    var description: String
-    var createdAt: String
-    var updatedAt: String
-}
 
 class FolderListViewController: UIViewController {
     var gotRespondFromServer = false
@@ -41,7 +23,6 @@ class FolderListViewController: UIViewController {
             systemName: "questionmark.folder.fill")?.withTintColor(UIColor.lightGray,
                                                                    renderingMode: .alwaysOriginal)
         myImage.contentMode = .scaleAspectFit
-        myImage.translatesAutoresizingMaskIntoConstraints = false
         myImage.heightAnchor.constraint(equalToConstant: 100).isActive = true
         myImage.widthAnchor.constraint(equalToConstant: 100).isActive = true
         return myImage
@@ -132,8 +113,7 @@ class FolderListViewController: UIViewController {
     }
     @objc func addFolderOnclick() {
         if gotRespondFromServer {
-            let destinationScene = FolderEditViewController()
-            destinationScene.isEditMode = false
+            let destinationScene = AddFolderViewController()
             destinationScene.folderEditObject.token = userObj.token
             navigationController?.pushViewController(destinationScene, animated: true)
         } else {
@@ -142,9 +122,8 @@ class FolderListViewController: UIViewController {
         }
     }
     @objc func downFolderOnclick() {
-        let destinationScene = FileListViewController()
+        let destinationScene = FileDownloadViewController()
         destinationScene.title = "Downloads"
-        destinationScene.isDownloadMode = true
         navigationController?.pushViewController(destinationScene, animated: true)
     }
     func dismissNavigation() {
@@ -155,10 +134,15 @@ class FolderListViewController: UIViewController {
             self.refreshControl.endRefreshing()
         }
     }
+    func sortFolderList() {
+        userFullData.data.sort {
+            $0.name < $1.name
+        }
+    }
     @objc func getAllFolder() { // swiftlint:disable:this function_body_length
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
-        AF.request("\(OurServer.serverIP)get_folder",
+        AF.request("\(ServerManager.serverIP)get_folder",
                    method: .get,
                    headers: apiHeaderToken).response { response in
             // Check if the connection success or fail
@@ -195,6 +179,7 @@ class FolderListViewController: UIViewController {
                     } else {
                         do {
                             self.userFullData = try JSONDecoder().decode(FullFolderData.self, from: data)
+                            self.sortFolderList()
                             self.mainCollectionView!.reloadData()
                             self.vStackContainer.isHidden = true
                             self.gotRespondFromServer = true
@@ -239,7 +224,6 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         destinationScene.folderEditObject.name = userFullData.data[indexPath.row].name
         destinationScene.folderEditObject.token = userObj.token
         destinationScene.title = userFullData.data[indexPath.row].name
-        destinationScene.isDownloadMode = false
         navigationController?.pushViewController(destinationScene, animated: true)
     }
     func collectionView(_ collectionView: UICollectionView,
@@ -267,9 +251,17 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         }
         userFullData.page.count += 1
         let tempApiObject = notification.object as! ApiFolders
-        userFullData.data.insert(tempApiObject, at: Base64Encode.shared.minusOne(userFullData.data.count))
-        mainCollectionView!.insertItems(at: [IndexPath(row: Base64Encode.shared.minusOne(userFullData.data.count),
-                                                       section: 0)])
+        for (indexx, eachEle) in userFullData.data.enumerated() where tempApiObject.name < eachEle.name {
+            userFullData.data.insert(tempApiObject, at: indexx)
+            mainCollectionView!.insertItems(at: [IndexPath(row: indexx, section: 0)])
+            break
+        }
+        if userFullData.page.count != userFullData.data.count {
+            let theIndexPath = IndexPath(row: userFullData.data.count, section: 0)
+            userFullData.data.insert(tempApiObject, at: theIndexPath.row)
+            mainCollectionView!.insertItems(at: [theIndexPath])
+        }
+        mainCollectionView?.reloadData()
         vStackContainer.isHidden = true
     }
     @objc func updateFolder(_ notification: NSNotification) {
@@ -279,6 +271,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             mainCollectionView!.reloadData()
             break
         }
+        sortFolderList()
     }
     @objc func deleteFolder(_ notification: NSNotification) {
         let tempApiObject = notification.object as! ApiFolders
@@ -302,16 +295,15 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             debugPrint("> \(action)")
             let edit = UIAction(title: "Edit", image: UIImage(systemName: "square.and.pencil"),
                                 identifier: nil, discoverabilityTitle: nil, state: .off) { (_) in
-                let destinationScene = FolderEditViewController()
+                let destinationScene = EditFolderViewController()
                 destinationScene.requestFromRoot = true
-                destinationScene.isEditMode = true
                 destinationScene.folderEditObject = tempApi
                 self.navigationController?.pushViewController(destinationScene, animated: true)
             }
             let delete = UIAction(title: "Delete", image: UIImage(systemName: "trash"),
                                   identifier: nil, discoverabilityTitle: nil,
                                   attributes: .destructive, state: .off) { (_) in
-                OurServer.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
+                ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
                 if self.userFullData.page.count <= 1 {
                     self.vStackContainer.isHidden = false
                 }
@@ -322,21 +314,17 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         return context
     }
     func configureGeneralConstraint() {
-        mainCollectionView!.translatesAutoresizingMaskIntoConstraints = false
-        mainCollectionView!.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        mainCollectionView!.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        let conManager = ConstraintManager.shared
+        mainCollectionView!.isAutoResize(false)
+        mainCollectionView! = conManager.fitTopBottom(child: mainCollectionView!, parent: view.safeAreaLayoutGuide,
+                                                      padding: 0) as! UICollectionView
         mainCollectionView!.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor,
                                                   constant: 7).isActive = true
         mainCollectionView!.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor,
                                                    constant: -7).isActive = true
-        vStackContainer.centerXAnchor.constraint(
-            equalTo: view.safeAreaLayoutGuide.centerXAnchor).isActive = true
-        vStackContainer.centerYAnchor.constraint(
-            equalTo: view.safeAreaLayoutGuide.centerYAnchor).isActive = true
-        vStackContainer.translatesAutoresizingMaskIntoConstraints = false
-        vStackContainer.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor).isActive = true
-        vStackContainer.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
+        vStackContainer = conManager.absoluteCenter(child: vStackContainer,
+                                                    parent: view.safeAreaLayoutGuide) as! UIStackView
+        vStackContainer = conManager.fitLeftRight(child: vStackContainer, parent: view.safeAreaLayoutGuide,
+                                                  padding: 0) as! UIStackView
     }
 }

@@ -10,15 +10,122 @@
 import Foundation
 import Alamofire
 
-class OurServer {
+class ServerManager {
     // 192.168.11.56 >> SokHeng Server
     // 192.168.11.179 >> Nimit Server
-    static let shared = OurServer()
-    static let serverIP =  "http://192.168.11.56:8000/"
+    static let shared = ServerManager()
+    static let serverIP =  "http://192.168.11.179:8000/"
+    func loggingIn (apiLogin: LoginObject, viewCon: UIViewController) {
+        let loginScreen = viewCon as! LoginViewController
+        AF.request("\(ServerManager.serverIP)login",
+                   method: .post,
+                   parameters: apiLogin,
+                   encoder: JSONParameterEncoder.default).response { response in
+            // Check if the connection success or fail
+            switch response.result {
+            case .failure(let error):
+                loginScreen.dismissLoadingAlert()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    loginScreen.showAlertBox(title: "Login Error",
+                                      message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
+                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                }
+            case .success(let data):
+                print(data!)
+            }
+            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            if let data = response.data {
+                let json = String(data: data, encoding: .utf8)
+                if json!.contains("\"error\"") {
+                    var errorObj = ErrorObject()
+                    errorObj = try! JSONDecoder().decode(ErrorObject.self, from: data)
+                    loginScreen.dismissLoadingAlert()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        loginScreen.showAlertBox(title: "Login error", message: errorObj.error,
+                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                    }
+                } else {
+                    if response.error != nil {
+                        loginScreen.dismissLoadingAlert()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            loginScreen.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                        }
+                    } else {
+                        do {
+                            loginScreen.userObj = try JSONDecoder().decode(UserContainerObject.self, from: data)
+                            loginScreen.dismissLoadingAlert()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                loginScreen.startUserScreen(isAuto: false)
+                            }
+                        } catch {
+                            loginScreen.dismissLoadingAlert()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                loginScreen.showAlertBox(title: "Data error", message: "User's data didn't loaded",
+                                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    func registerAccount(apiRegister: RegisterUserObject, viewCon: UIViewController) {
+        let registerScreen = viewCon as! RegisterViewController
+        AF.request("\(ServerManager.serverIP)register",
+                   method: .post, parameters: apiRegister,
+                   encoder: JSONParameterEncoder.default).response { response in
+            // Check if the connection success or fail
+            switch response.result {
+            case .failure(let error):
+                registerScreen.dismissLoadingAlert()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    registerScreen.showAlertBox(title: "Login Error",
+                                      message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
+                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                }
+            case .success(let data):
+                print(data!)
+            }
+            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            if let data = response.data {
+                let json = String(data: data, encoding: .utf8)
+                if json!.contains("\"error\"") {
+                    var errorObj = ErrorObject()
+                    do {
+                        errorObj = try JSONDecoder().decode(ErrorObject.self, from: data)
+                    } catch {
+                        print("Encoding Error >>RegisterView>>SumitOnclick>>IfJson.Contain(ERROR)")
+                    }
+                    registerScreen.dismissLoadingAlert()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        registerScreen.showAlertBox(title: "Can't register", message: errorObj.error,
+                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                    }
+                } else {
+                    if response.error != nil {
+                        registerScreen.dismissLoadingAlert()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            registerScreen.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                        }
+                    } else {
+                        registerScreen.dismissLoadingAlert()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            registerScreen.showAlertBox(title: "Congratulations",
+                                              message: "Your account had been created",
+                                              buttonAction: { _ in registerScreen.dismissNavigation() },
+                                              buttonText: "Okay", buttonStyle: .default)
+                        }
+                    }
+                }
+            }
+        }
+    }
     func deleteFile(fileId: String, authToken: String, viewCon: UIViewController) {
         let fileListVC = viewCon as! FileListViewController
         let apiRequest = DeleteFileObject(_id: fileId, token: authToken)
-        AF.request("\(OurServer.serverIP)delete_file",
+        AF.request("\(ServerManager.serverIP)delete_file",
                    method: .post,
                    parameters: apiRequest,
                    encoder: JSONParameterEncoder.default).response { response in
@@ -61,7 +168,7 @@ class OurServer {
         AF.upload(multipartFormData: { multiPart in
             multiPart.append(Data("\(fileListVC.folderEditObject._id)".utf8), withName: "folderId")
             multiPart.append(fileURL, withName: "file")
-        }, to: URL(string: "\(OurServer.serverIP)upload_file")!, method: .post,
+        }, to: URL(string: "\(ServerManager.serverIP)upload_file")!, method: .post,
                   headers: ["token": fileListVC.folderEditObject.token])
         .validate()
         .uploadProgress(queue: .main, closure: { progress in
@@ -71,32 +178,23 @@ class OurServer {
         })
         .response { response in
             do {
+                let iconManager = IconManager.shared
                 uploadedFileRespond = try JSONDecoder().decode(Response.self, from: response.data!)
                 AppFileManager.shared.initOnStart()
                 cell.fileNameLabel.text = uploadedFileRespond.file.name
-                if uploadedFileRespond.file.name.lowercased().contains(".png") ||
-                    uploadedFileRespond.file.name.lowercased().contains(".jpg") {
-                    cell.iconImage.image = UIImage(systemName: "photo")
-                } else if uploadedFileRespond.file.name.lowercased().contains(".doc") ||
-                            uploadedFileRespond.file.name.lowercased().contains(".pdf") {
-                    cell.iconImage.image = UIImage(systemName: "doc.richtext")
-                } else if uploadedFileRespond.file.name.lowercased().contains(".txt") {
-                    cell.iconImage.image = UIImage(systemName: "doc.plaintext")
-                } else if uploadedFileRespond.file.name.lowercased().contains(".mp3") ||
-                            uploadedFileRespond.file.name.lowercased().contains(".mp4") {
-                    cell.iconImage.image = UIImage(systemName: "play.rectangle")
-                } else if uploadedFileRespond.file.name.lowercased().contains(".rar") ||
-                            uploadedFileRespond.file.name.lowercased().contains(".zip") {
-                    cell.iconImage.image = UIImage(systemName: "doc.zipper")
-                } else {
-                    cell.iconImage.image = UIImage(systemName: "doc")
-                }
+                cell.iconImage.image = iconManager.iconFileType(fileName: uploadedFileRespond.file.name)
                 cell.sizeNameLabel.isHidden = false
                 cell.loadingProgressBar.isHidden = true
+                cell.downIconImage.isHidden = false
+                cell.spinIndicator.isHidden = true
                 cell.sizeNameLabel.text = "file downloaded"
                 cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
                 fileListVC.emptyIconImage.isHidden = true
                 fileListVC.userFileFullData.data[Base64Encode.shared.minusOne(arrIndex)] = uploadedFileRespond.file
+                fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = !fileListVC.hasUploadingProcess()
+                if !fileListVC.hasUploadingProcess() {
+                    fileListVC.mainTableView.addSubview(fileListVC.refreshControl)
+                }
             } catch {
                 viewCont.showAlertBox(title: "Can't upload",
                                       message: String(data: response.data!, encoding: .utf8)!,
@@ -109,7 +207,7 @@ class OurServer {
         let fileListVC = viewCont as! FileListViewController
         let apiHeaderToken: HTTPHeaders = ["token": fileListVC.folderEditObject.token]
         let apiParameter = FolderIDStruct(folderId: fileListVC.folderEditObject._id)
-        AF.request("\(OurServer.serverIP)get_files",
+        AF.request("\(ServerManager.serverIP)get_files",
                    method: .get, parameters: apiParameter, headers: apiHeaderToken).response { response in
             if let data = response.data {
                 let json = String(data: data, encoding: .utf8)
@@ -125,6 +223,7 @@ class OurServer {
                     } else {
                         do {
                             fileListVC.userFileFullData = try JSONDecoder().decode(FullFilesData.self, from: data)
+                            fileListVC.sortFolderList()
                             fileListVC.mainTableView.reloadData()
                             fileListVC.emptyIconImage.isHidden = true
                         } catch {
@@ -149,10 +248,9 @@ class OurServer {
         }
     }
     func folderRequestAction(toPerform: String, apiRequest: FolderEditCreateObject, viewCon: UIViewController) {
-        let alamoFireRequest = AF.request("\(OurServer.serverIP)\(toPerform)_folder",
+        let alamoFireRequest = AF.request("\(ServerManager.serverIP)\(toPerform)_folder",
                                           method: .post, parameters: apiRequest, encoder: JSONParameterEncoder.default)
-        if String(describing: viewCon).contains("FolderEditViewController") {
-            let folderEditVC = viewCon as! FolderEditViewController
+        if String(describing: viewCon).contains("FolderViewController") {
             alamoFireRequest.response { response in
                 if let data = response.data {
                     let json = String(data: data, encoding: .utf8)
@@ -163,32 +261,36 @@ class OurServer {
                         } catch {
                             print("Encoding Error >>CreateEditFolder>>\(toPerform)Folder>>IfJson.Contain(ERROR)")
                         }
-                        folderEditVC.showAlertBox(title: "Can't \(toPerform)", message: errorObj.error,
+                        (viewCon as! EditFolderViewController).showAlertBox(title: "Can't \(toPerform)", message: errorObj.error,
                                                   buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     } else {
                         if response.error != nil {
-                            folderEditVC.showAlertBox(title: "Connection error",
+                            (viewCon as! EditFolderViewController).showAlertBox(title: "Connection error",
                                                       message: response.error!.localizedDescription,
                                                       buttonAction: { _ in
-                                folderEditVC.decideToClose(toPerform: toPerform) },
+                                (viewCon as! EditFolderViewController).decideToClose(toPerform: toPerform) },
                                                       buttonText: "Okay", buttonStyle: .default)
                         } else {
-                            if !folderEditVC.isEditMode {
-                                folderEditVC.dismissNavigation()
+                            if String(describing: viewCon).contains("Add") {
+                                (viewCon as! AddFolderViewController).dismissNavigation()
                             } else {
-                                if folderEditVC.requestFromRoot {
-                                    folderEditVC.dismissNavigation()
+                                if (viewCon as! EditFolderViewController).requestFromRoot {
+                                    (viewCon as! EditFolderViewController).dismissNavigation()
                                 } else {
                                     let viewControllers: [UIViewController] =
-                                    folderEditVC.navigationController!.viewControllers as [UIViewController]
-                                    folderEditVC.navigationController!.popToViewController(
+                                    (viewCon as! EditFolderViewController).navigationController!.viewControllers as [UIViewController]
+                                    (viewCon as! EditFolderViewController).navigationController!.popToViewController(
                                         viewControllers[viewControllers.count - 3], animated: true)
                                 }
                             }
                             let tempApiFolder = ApiFolders(_id: apiRequest._id, name: apiRequest.name,
                                                        description: apiRequest.description, createdAt: "",
                                                        updatedAt: "")
-                            folderEditVC.sendFolderNotification(toPerform: toPerform, theObject: tempApiFolder)
+                            if toPerform == "create" {
+                                (viewCon as! AddFolderViewController).sendFolderNotification(toPerform: toPerform, theObject: tempApiFolder)
+                            } else {
+                                (viewCon as! EditFolderViewController).sendFolderNotification(toPerform: toPerform, theObject: tempApiFolder)
+                            }
                         }
                     }
                 }
@@ -235,7 +337,7 @@ class OurServer {
         let cell = tableCell as! MainTableViewCell
         cell.loadingProgressBar.tintColor = UIColor.green
         let apiHeaderToken: HTTPHeaders = ["token": authToken]
-        AF.download("\(OurServer.serverIP)file/\(fileId)/\(fileName)", method: .get, headers: apiHeaderToken)
+        AF.download("\(ServerManager.serverIP)file/\(fileId)/\(fileName)", method: .get, headers: apiHeaderToken)
             .downloadProgress(queue: .main, closure: { progress in
                 cell.loadingProgressBar.progress = Float(progress.fractionCompleted)
                 print("> \(progress.fractionCompleted)")

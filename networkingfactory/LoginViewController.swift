@@ -5,25 +5,8 @@
 //  Created by SokHeng on 23/11/22.
 //
 
-// swiftlint:disable force_try
-// swiftlint:disable identifier_name
-// swiftlint:disable function_body_length
-
 import UIKit
 import Alamofire
-
-struct UserContainerObject: Codable {
-    var id: String
-    var email: String
-    var first_name: String
-    var last_name: String
-    var token: String
-}
-
-struct LoginObject: Encodable {
-    var email: String
-    var password: String
-}
 
 class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
     // UI config
@@ -143,89 +126,27 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         configureGeneralConstraints()
     }
-    func allInputHaveValue() -> Bool {
-        if emailInputfield.hasText {
-            if passwordInputfield.hasText {
-                return true
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
-    }
     @objc func registerOnclick() {
         let secondScreen = RegisterViewController()
         navigationController?.pushViewController(secondScreen, animated: true)
     }
     @objc func loginOnclick() {
-        if allInputHaveValue() {
+        let inputCollection = [passwordInputfield, emailInputfield]
+        let inputManager = InputFieldManager.shared
+        let ourServer = ServerManager.shared
+        if inputManager.allInputHaveValue(allInputfield: inputCollection) {
             present(loadingAlertView, animated: true)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 let apiLogin = LoginObject(email: self.emailInputfield.text!.lowercased(),
                                            password: self.passwordInputfield.text!)
-                AF.request("\(OurServer.serverIP)login",
-                           method: .post,
-                           parameters: apiLogin,
-                           encoder: JSONParameterEncoder.default).response { response in
-                    // Check if the connection success or fail
-                    switch response.result {
-                    case .failure(let error):
-                        self.dismissLoadingAlert()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.showAlertBox(title: "Login Error",
-                                              message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
-                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                        }
-                    case .success(let data):
-                        print(data!)
-                    }
-                    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                    if let data = response.data {
-                        let json = String(data: data, encoding: .utf8)
-                        if json!.contains("\"error\"") {
-                            var errorObj = ErrorObject()
-                            errorObj = try! JSONDecoder().decode(ErrorObject.self, from: data)
-                            self.dismissLoadingAlert()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                self.showAlertBox(title: "Login error", message: errorObj.error,
-                                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                            }
-                        } else {
-                            if response.error != nil {
-                                self.dismissLoadingAlert()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                    self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
-                                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                                }
-                            } else {
-                                do {
-                                    self.userObj = try JSONDecoder().decode(UserContainerObject.self, from: data)
-                                    self.dismissLoadingAlert()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        self.startUserScreen(isAuto: false)
-                                    }
-                                } catch {
-                                    self.dismissLoadingAlert()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        self.showAlertBox(title: "Data error", message: "User's data didn't loaded",
-                                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                ourServer.loggingIn(apiLogin: apiLogin, viewCon: self)
             }
         } else {
-            dismissLoadingAlert()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self.showAlertBox(title: "Can't login",
-                                  message: "Please enter your email address and your password to sign in",
-                                  buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-            }
+            self.showAlertBox(title: "Empty Info",
+                              message: "Please enter your email address and your password to sign in",
+                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
-        highlightEmptyInputfield()
+        inputManager.highlightEmpty(allInputfield: inputCollection)
     }
     func startUserScreen(isAuto: Bool) {
         if isAuto {
@@ -255,39 +176,16 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         self.view.endEditing(true)
         return false
     }
-    func highlightEmptyInputfield() {
-        if emailInputfield.text == ""{
-            emailInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                             outlineWidth: 1,
-                                             cornerRadius: 5)
-        } else {
-            emailInputfield.hasBorderOutline(false)
-        }
-        if passwordInputfield.text == ""{
-            passwordInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                outlineWidth: 1,
-                                                cornerRadius: 5)
-        } else {
-            passwordInputfield.hasBorderOutline(false)
-        }
-    }
 }
 
+// swiftlint:disable force_cast
 extension LoginViewController {
     func configureGeneralConstraints() {
-        mainScrollView.translatesAutoresizingMaskIntoConstraints = false
-        mainScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        mainScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-        mainScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
-        mainScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
-        // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
-        vStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        let conManager = ConstraintManager.shared
+        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView, parent: view.safeAreaLayoutGuide,
+                                                     padding: 0) as! UIScrollView
+        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        vStackContainer.centerXAnchor.constraint(equalTo: mainScrollView.centerXAnchor).isActive = true
-        vStackContainer.topAnchor.constraint(equalTo: mainScrollView.topAnchor).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: mainScrollView.leftAnchor, constant: 20).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: mainScrollView.rightAnchor).isActive = true
-        vStackContainer.bottomAnchor.constraint(equalTo: mainScrollView.bottomAnchor).isActive = true
     }
 }

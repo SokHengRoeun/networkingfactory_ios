@@ -70,4 +70,7 @@ extension UIView {
         self.layer.shadowOpacity = shadowOpacity
         self.layer.shadowOffset = shadowOffset
     }
+    func isAutoResize(_ setActive: Bool) {
+        self.translatesAutoresizingMaskIntoConstraints = setActive
+    }
 }

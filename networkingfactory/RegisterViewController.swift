@@ -5,22 +5,8 @@
 //  Created by SokHeng on 23/11/22.
 //
 
-// swiftlint:disable identifier_name
-// swiftlint:disable type_body_length
-
 import UIKit
 import Alamofire
-
-struct RegisterUserObject: Encodable {
-    let first_name: String
-    let last_name: String
-    let email: String
-    let password: String
-}
-
-struct ErrorObject: Codable {
-    var error = ""
-}
 
 class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
     var userImageIcon: UIImageView = {
@@ -184,19 +170,10 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         }
         return aLegitEmail
     }
-    func allInputHaveValue() -> Bool {
-        if firstnameInputfield.hasText && lastnameInputfield.hasText {
-            if emailInputfield.hasText && passswordInputfield.hasText {
-                return true
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
-    }
     @objc func summitRegisterOnlick() {
-        if allInputHaveValue() {
+        let inputManager = InputFieldManager.shared
+        let inputCollection = [emailInputfield, lastnameInputfield, firstnameInputfield, passswordInputfield]
+        if inputManager.allInputHaveValue(allInputfield: inputCollection) {
             if isLegitEmail(theString: emailInputfield.text!) {
                 if !hasSpecialCharacter(theString: firstnameInputfield.text! + lastnameInputfield.text!) {
                     present(loadingAlertView, animated: true)
@@ -216,60 +193,13 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
                               message: "Please provide all information to register. Do not leave any of them empty!",
                               buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
-        highlightEmptyInputfield()
+        inputManager.highlightEmpty(allInputfield: inputCollection)
     }
     func registerAction() {
+        let ourServer = ServerManager.shared
         let apiRegister = RegisterUserObject(first_name: firstnameInputfield.text!, last_name: lastnameInputfield.text!,
                                              email: emailInputfield.text!, password: passswordInputfield.text!)
-        AF.request("\(OurServer.serverIP)register",
-                   method: .post, parameters: apiRegister,
-                   encoder: JSONParameterEncoder.default).response { response in
-            // Check if the connection success or fail
-            switch response.result {
-            case .failure(let error):
-                self.dismissLoadingAlert()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.showAlertBox(title: "Login Error",
-                                      message: Base64Encode.shared.chopFirstSuffix(error.localizedDescription),
-                                      buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                }
-            case .success(let data):
-                print(data!)
-            }
-            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            if let data = response.data {
-                let json = String(data: data, encoding: .utf8)
-                if json!.contains("\"error\"") {
-                    var errorObj = ErrorObject()
-                    do {
-                        errorObj = try JSONDecoder().decode(ErrorObject.self, from: data)
-                    } catch {
-                        print("Encoding Error >>RegisterView>>SumitOnclick>>IfJson.Contain(ERROR)")
-                    }
-                    self.dismissLoadingAlert()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.showAlertBox(title: "Can't register", message: errorObj.error,
-                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                    }
-                } else {
-                    if response.error != nil {
-                        self.dismissLoadingAlert()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
-                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
-                        }
-                    } else {
-                        self.dismissLoadingAlert()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.showAlertBox(title: "Congratulations",
-                                              message: "You have successfully registered your account",
-                                              buttonAction: { _ in self.dismissNavigation() },
-                                              buttonText: "Okay", buttonStyle: .default)
-                        }
-                    }
-                }
-            }
-        }
+        ourServer.registerAccount(apiRegister: apiRegister, viewCon: self)
     }
     func dismissNavigation() {
         navigationController?.popViewController(animated: true)
@@ -283,54 +213,16 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     }
 }
 
+// swiftlint:disable force_cast
 extension RegisterViewController {
     func configureGeneralConstraints() {
-        mainScrollView.translatesAutoresizingMaskIntoConstraints = false
-        mainScrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor).isActive = true
-        mainScrollView.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor).isActive = true
-        mainScrollView.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor).isActive = true
-        mainScrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+        let conManager = ConstraintManager.shared
+        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView,
+                                                     parent: view.safeAreaLayoutGuide,
+                                                     padding: 0) as! UIScrollView
         // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
-        vStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        vStackContainer.centerXAnchor.constraint(equalTo: mainScrollView.centerXAnchor).isActive = true
-        vStackContainer.topAnchor.constraint(equalTo: mainScrollView.topAnchor).isActive = true
-        vStackContainer.leftAnchor.constraint(equalTo: mainScrollView.leftAnchor, constant: 20).isActive = true
-        vStackContainer.rightAnchor.constraint(equalTo: mainScrollView.rightAnchor).isActive = true
-        vStackContainer.bottomAnchor.constraint(equalTo: mainScrollView.bottomAnchor).isActive = true
-    }
-    func highlightEmptyInputfield() {
-        if emailInputfield.text == ""{
-            emailInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                   outlineWidth: 1,
-                                                   cornerRadius: 5)
-        } else {
-            emailInputfield.hasBorderOutline(false)
-        }
-        if firstnameInputfield.text == "" {
-            firstnameInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                       outlineWidth: 1,
-                                                       cornerRadius: 5
-            )
-        } else {
-            firstnameInputfield.hasBorderOutline(false)
-        }
-        if lastnameInputfield.text == "" {
-            lastnameInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                       outlineWidth: 1,
-                                                       cornerRadius: 5
-            )
-        } else {
-            lastnameInputfield.hasBorderOutline(false)
-        }
-        if passswordInputfield.text == "" {
-            passswordInputfield.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                       outlineWidth: 1,
-                                                       cornerRadius: 5
-            )
-        } else {
-            passswordInputfield.hasBorderOutline(false)
-        }
     }
 }
