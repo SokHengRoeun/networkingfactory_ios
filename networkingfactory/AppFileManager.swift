@@ -13,10 +13,8 @@ import UIKit
 class AppFileManager {
     static let shared = AppFileManager()
     private let fManager = FileManager.default
-    let fileDirectoryURL = try! FileManager.default.url(for: .documentDirectory,
-                                                        in: .userDomainMask,
-                                                        appropriateFor: nil,
-                                                        create: true)
+    let fileDirectoryURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask,
+                                                        appropriateFor: nil, create: true)
     func storeFile(fileName: String, fileData: Data) -> String {
         var tempMessage = "fail"
         if hasFile(fileName: fileName) {

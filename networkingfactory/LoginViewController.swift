@@ -29,21 +29,13 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     var emailInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "Email"
-        myInput.autocorrectionType = .no
-        myInput.autocapitalizationType = .none
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var passwordInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "Password"
-        myInput.autocorrectionType = .no
-        myInput.autocapitalizationType = .none
         myInput.isSecureTextEntry = true
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var summitButton: UIButton = {
         let myButton = UIButton()
@@ -66,13 +58,18 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         myLabel.text = "Keep me login"
         return myLabel
     }()
+    var appBackgroundImage: UIImageView = {
+        let myImage = UIImageView()
+        myImage.contentMode = .scaleAspectFill
+        myImage.image = UIImage(named: "ourAppBackground.jpg")
+        return myImage
+    }()
     // Alert Loading Uploading LMAO
     let loadingAlertView = UIAlertController(title: "Loading ...", message: nil, preferredStyle: .alert)
     let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     override func viewDidLoad() {
         super.viewDidLoad()
-        print(AppFileManager.shared.fileDirectoryURL)
         if (UserDefaults.standard.string(forKey: "user_token") ?? "").count > 10 {
             startUserScreen(isAuto: true)
         }
@@ -125,6 +122,7 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         passwordInputfield.delegate = self
         summitButton.addTarget(self, action: #selector(loginOnclick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
+        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraints()
     }
     @objc func registerOnclick() {
@@ -188,5 +186,7 @@ extension LoginViewController {
         vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
+        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
+                                                         padding: 0) as! UIImageView
     }
 }

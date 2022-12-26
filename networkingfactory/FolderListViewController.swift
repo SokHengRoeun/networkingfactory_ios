@@ -45,6 +45,12 @@ class FolderListViewController: UIViewController {
         myLabel.isHidden = true
         return myLabel
     }()
+    var appBackgroundImage: UIImageView = {
+        let myImage = UIImageView()
+        myImage.contentMode = .scaleAspectFill
+        myImage.image = UIImage(named: "folderBackground.jpg")
+        return myImage
+    }()
     var refreshControl = UIRefreshControl()
     var mainSearchController = UISearchController()
     func serverNotRespondAction() {
@@ -101,12 +107,14 @@ class FolderListViewController: UIViewController {
         mainCollectionView!.register(MainCollectionViewCell.self, forCellWithReuseIdentifier: "MainCell")
         mainCollectionView!.addSubview(refreshControl)
         mainCollectionView!.alwaysBounceVertical = true
+        mainCollectionView!.backgroundColor = UIColor(white: 1, alpha: 0)
         view.addSubview(vStackContainer)
         navigationItem.searchController = mainSearchController
         mainSearchController.searchResultsUpdater = self
         vStackContainer.addArrangedSubview(emptyIconImage)
         vStackContainer.addArrangedSubview(cannotOpenLabel)
         refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
+        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraint()
     }
     @objc func signoutOnclick() {
@@ -337,6 +345,8 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                                                     parent: view.safeAreaLayoutGuide) as! UIStackView
         vStackContainer = conManager.fitLeftRight(child: vStackContainer, parent: view.safeAreaLayoutGuide,
                                                   padding: 0) as! UIStackView
+        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
+                                                         padding: 0) as! UIImageView
     }
 }
 

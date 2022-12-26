@@ -67,6 +67,12 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         myButton.hasShadow(shadowColor: UIColor.green.cgColor, shadowOpacity: 1, shadowOffset: .zero)
         return myButton
     }()
+    var appBackgroundImage: UIImageView = {
+        let myImage = UIImageView()
+        myImage.contentMode = .scaleAspectFill
+        myImage.image = UIImage(named: "ourAppBackground.jpg")
+        return myImage
+    }()
     var tapTapRecogn = UITapGestureRecognizer()
     var mainScrollView = UIScrollView()
     override func viewDidLoad() {
@@ -86,6 +92,7 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         view.addGestureRecognizer(tapTapRecogn)
         summitButton.addTarget(self, action: #selector(editOrCreateFolderAction), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
+        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralContraints()
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
@@ -202,5 +209,7 @@ extension AddFolderViewController {
         vStackContainer = conManager.centerHorizontally(child: vStackContainer, parent: mainScrollView,
                                                         padding: 0) as! UIStackView
         vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
+        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
+                                                         padding: 0) as! UIImageView
     }
 }

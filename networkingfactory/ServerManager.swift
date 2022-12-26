@@ -15,7 +15,7 @@ class ServerManager {
     // 192.168.11.235 >> SokHeng's New Server
     // 192.168.11.179 >> Nimit's Server
     static let shared = ServerManager()
-    static let serverIP =  "http://192.168.11.179:8000/" // <<<< change Server address here.
+    static let serverIP =  "http://192.168.11.235:8000/" // <<<< change Server address here.
     func loggingIn (apiLogin: LoginObject, viewCon: UIViewController) {
         let loginScreen = viewCon as! LoginViewController
         AF.request("\(ServerManager.serverIP)login", method: .post, parameters: apiLogin,

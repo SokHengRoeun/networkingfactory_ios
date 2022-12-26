@@ -10,6 +10,14 @@ import UIKit
 
 class InputFieldManager {
     static let shared = InputFieldManager()
+    func fixInputField(original: UITextField) -> UITextField {
+        let forReturn = original
+        forReturn.autocorrectionType = .no
+        forReturn.autocapitalizationType = .none
+        forReturn.borderStyle = .roundedRect
+        forReturn.clearButtonMode = .always
+        return forReturn
+    }
     func highlightEmpty (allInputfield: [UITextField]) {
         for eachInput in allInputfield {
             if eachInput.text == "" {

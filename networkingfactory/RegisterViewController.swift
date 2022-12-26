@@ -5,6 +5,8 @@
 //  Created by SokHeng on 23/11/22.
 //
 
+// swiftlint:disable force_cast
+
 import UIKit
 import Alamofire
 
@@ -32,10 +34,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     var firstnameInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "First name (required)"
-        myInput.autocorrectionType = .no
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var lastnameLabel: UILabel = {
         let myLabel = UILabel()
@@ -46,10 +45,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     var lastnameInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "Last name (required)"
-        myInput.autocorrectionType = .no
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var emailLabel: UILabel = {
         let myLabel = UILabel()
@@ -60,10 +56,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     var emailInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "Email (required)"
-        myInput.autocorrectionType = .no
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var passwordLabel: UILabel = {
         let myLabel = UILabel()
@@ -74,11 +67,8 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     var passswordInputfield: UITextField = {
         let myInput = UITextField()
         myInput.placeholder = "Password (required)"
-        myInput.autocorrectionType = .no
         myInput.isSecureTextEntry = true
-        myInput.borderStyle = .roundedRect
-        myInput.clearButtonMode = .always
-        return myInput
+        return InputFieldManager.shared.fixInputField(original: myInput)
     }()
     var registerButton: UIButton = {
         let myButton = UIButton()
@@ -90,6 +80,12 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     }()
     var tapTapRecogn = UITapGestureRecognizer()
     var mainScrollView = UIScrollView()
+    var appBackgroundImage: UIImageView = {
+        let myImage = UIImageView()
+        myImage.contentMode = .scaleAspectFill
+        myImage.image = UIImage(named: "ourAppBackground2.jpg")
+        return myImage
+    }()
     // Alert Loading Uploading LMAO
     let loadingAlertView = UIAlertController(title: "Loading ...", message: nil, preferredStyle: .alert)
     let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
@@ -123,6 +119,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         view.addGestureRecognizer(tapTapRecogn)
         registerButton.addTarget(self, action: #selector(summitRegisterOnlick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
+        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraints()
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
@@ -148,15 +145,6 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
             self.loadingAlertView.dismiss(animated: true)
         }
     }
-    func hasSpecialCharacter(theString: String) -> Bool {
-        let specialChar = ["<", "-", ">", ".", "(", ")", "+", "=", "*", "/", "[", "]", "^", "'",
-                           "{", "}", "|", "!", "@", "#", "$", "%", "&", "?", ",", ":", ";", "\"", "\\"]
-        var doHaveSpecialChar = false
-        for index in specialChar where theString.contains(index) {
-            doHaveSpecialChar = true
-        }
-        return doHaveSpecialChar
-    }
     func isLegitEmail(theString: String) -> Bool {
         var aLegitEmail = false
         if theString.contains("@") && theString.contains(".") {
@@ -175,7 +163,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         let inputCollection = [emailInputfield, lastnameInputfield, firstnameInputfield, passswordInputfield]
         if inputManager.allInputHaveValue(allInputfield: inputCollection) {
             if isLegitEmail(theString: emailInputfield.text!) {
-                if !hasSpecialCharacter(theString: firstnameInputfield.text! + lastnameInputfield.text!) {
+                if !inputManager.hasSpecialCharacter(theString: firstnameInputfield.text! + lastnameInputfield.text!) {
                     present(loadingAlertView, animated: true)
                     registerAction() // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Register function is here
                 } else {
@@ -213,7 +201,6 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     }
 }
 
-// swiftlint:disable force_cast
 extension RegisterViewController {
     func configureGeneralConstraints() {
         let conManager = ConstraintManager.shared
@@ -224,5 +211,7 @@ extension RegisterViewController {
         vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
+        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
+                                                         padding: 0) as! UIImageView
     }
 }

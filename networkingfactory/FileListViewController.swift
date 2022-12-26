@@ -36,6 +36,12 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
         myImage.widthAnchor.constraint(equalToConstant: 100).isActive = true
         return myImage
     }()
+    var appBackgroundImage: UIImageView = {
+        let myImage = UIImageView()
+        myImage.contentMode = .scaleAspectFill
+        myImage.image = UIImage(named: "filesBackground.jpg")
+        return myImage
+    }()
     var mainSearchController = UISearchController()
     // Alert Loading Uploading LMAO
     let loadingAlertView = UIAlertController(title: nil, message: "Loading ...", preferredStyle: .alert)
@@ -44,8 +50,8 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor.white
         view.addSubview(mainTableView)
+        view.backgroundColor = UIColor.white
         refresherLoader()
         notificationListenSystem()
         initScreen()
@@ -58,10 +64,12 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
         mainTableView.register(MainTableViewCell.self, forCellReuseIdentifier: "MainCell")
         mainTableView.delegate = self
         mainTableView.dataSource = self
+        mainTableView.backgroundColor = UIColor(white: 1, alpha: 0)
         refreshControl.addTarget(self, action: #selector(refresherLoader), for: UIControl.Event.valueChanged)
         navigationItem.searchController = mainSearchController
         mainSearchController.searchResultsUpdater = self
         view.addSubview(emptyIconImage)
+        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraints()
     }
     func initScreen () {
@@ -227,6 +235,8 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
         emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
+        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
+                                                         padding: 0) as! UIImageView
     }
 
     func dismissLoadingAlert() {
@@ -236,7 +246,7 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     func hasUploadingProcess() -> Bool {
         var havePro = false
-        for eachEle in userFileFullData.data where eachEle._id.lowercased().contains("upload") {
+        for eachEle in userFileFullDataDisplay.data where eachEle._id.lowercased().contains("upload") {
             havePro = true
             break
         }
@@ -244,7 +254,7 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     func hasDownloadingProcess() -> Bool {
         var havePro = false
-        for eachEle in userFileFullData.data where eachEle.updatedAt.lowercased().contains("download") {
+        for eachEle in userFileFullDataDisplay.data where eachEle.updatedAt.lowercased().contains("download") {
             havePro = true
             break
         }
