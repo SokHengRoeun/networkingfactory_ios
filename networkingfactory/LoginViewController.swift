@@ -72,6 +72,7 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     override func viewDidLoad() {
         super.viewDidLoad()
+        print(AppFileManager.shared.fileDirectoryURL)
         if (UserDefaults.standard.string(forKey: "user_token") ?? "").count > 10 {
             startUserScreen(isAuto: true)
         }

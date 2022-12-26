@@ -121,7 +121,8 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         let inputManager = InputFieldManager.shared
         if allInputHaveValue() {
             if !(inputManager.hasSpecialCharacter(theString: folderNameInputfield.text!)) {
-                let tempApi = FolderEditCreateObject(_id: "\(Int.random(in: 0...9999999))" +
+                let tempApi = FolderEditCreateObject(_id: "\(Int.random(in: 0...9999999999))" +
+                                                     "_\(Int.random(in: 0...9999999999))" +
                                                      "_\(folderNameInputfield.text!)",
                                                      name: folderNameInputfield.text!,
                                                      description: folderDescriptionInputfield.text!,

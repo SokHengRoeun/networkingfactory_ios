@@ -47,4 +47,47 @@ class Base64Encode {
             return valuee - 1
         }
     }
+    enum FileApiChoice {
+        case _id // swiftlint:disable:this identifier_name
+        case name
+        case createAt
+        case updateAt
+    }
+    func locateIndex(yourChoice: FileApiChoice, arrayObj: [ApiFiles], searchObj: String) -> IndexPath {
+        var indexToReturn = IndexPath(row: 0, section: 0)
+        switch yourChoice {
+        case ._id:
+            for (indexx, elementt) in arrayObj.enumerated() where elementt._id == searchObj {
+                indexToReturn.row = indexx
+                break
+            }
+        case .name:
+            for (indexx, elementt) in arrayObj.enumerated() where elementt.name == searchObj {
+                indexToReturn.row = indexx
+                break
+            }
+        case .createAt:
+            for (indexx, elementt) in arrayObj.enumerated() where elementt.createdAt == searchObj {
+                indexToReturn.row = indexx
+                break
+            }
+        case .updateAt:
+            for (indexx, elementt) in arrayObj.enumerated() where elementt.updatedAt == searchObj {
+                indexToReturn.row = indexx
+                break
+            }
+        }
+        return indexToReturn
+    }
+    func locateIndex(yourChoice: FileApiChoice, arrayObj: [ApiFiles], searchObj: String) -> Int {
+        return locateIndex(yourChoice: yourChoice, arrayObj: arrayObj, searchObj: searchObj).row
+    }
+    func locateIndexArray(arrayObj: [String], searchObj: String) -> Int {
+        var forReturn = 0
+        for (indexx, elementt) in arrayObj.enumerated() where elementt == searchObj {
+            forReturn = indexx
+            break
+        }
+        return forReturn
+    }
 }

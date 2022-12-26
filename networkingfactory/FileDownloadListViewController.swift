@@ -12,19 +12,44 @@ import UIKit
 
 class FileDownloadViewController: FileListViewController {
     var allFilesDownloaded = [String]()
+    var allFilesDownloadDisplay = [String]()
+    var filterAllFilesDownloaded = [String]()
     override func initScreen() {
         emptyIconImage.image = UIImage(
             systemName: "tray.and.arrow.down")?.withTintColor(UIColor.lightGray,
                                                               renderingMode: .alwaysOriginal)
+        let clearDownloadButton = UIBarButtonItem(title: "Delete All", style: .done,
+                                               target: self, action: #selector(deleteAllDownloads))
+        clearDownloadButton.tintColor = UIColor.red
+        navigationItem.setRightBarButton(clearDownloadButton, animated: true)
+        allFilesDownloadDisplay = allFilesDownloaded
+    }
+    @objc func deleteAllDownloads() {
+        showAlertBox(title: "Delete all download?",
+                     message: "You will delete all file you downloaded.\nAre you sure?",
+                     firstButtonAction: nil,
+                     firstButtonText: "Cancel",
+                     firstButtonStyle: .cancel,
+                     secondButtonAction: { _ in
+            for eachFile in self.allFilesDownloaded {
+                let appFM = AppFileManager.shared
+                appFM.deleteFile(fileName: eachFile)
+            }
+            self.emptyIconImage.isHidden = false
+            self.allFilesDownloadDisplay = [String]()
+            self.mainTableView.reloadData()
+        },
+                     secondButtonText: "Delete All",
+                     secondButtonStyle: .destructive)
     }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return allFilesDownloaded.count
+        return allFilesDownloadDisplay.count
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = mainTableView.dequeueReusableCell(
             withIdentifier: "MainCell") as! MainTableViewCell
-        cell.iconImage.image = IconManager.shared.iconFileType(fileName: allFilesDownloaded[indexPath.row])
-        cell.fileNameLabel.text = allFilesDownloaded[indexPath.row]
+        cell.iconImage.image = IconManager.shared.iconFileType(fileName: allFilesDownloadDisplay[indexPath.row])
+        cell.fileNameLabel.text = allFilesDownloadDisplay[indexPath.row]
         cell.sizeNameLabel.text = "file downloaded"
         cell.sizeNameLabel.isHidden = false
         cell.spinIndicator.isHidden = true
@@ -33,22 +58,22 @@ class FileDownloadViewController: FileListViewController {
         cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
         return cell
     }
-    override func sortFolderList() {
-        allFilesDownloaded = allFilesDownloaded.sorted()
-    }
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        openPreviewScreen(fileName: allFilesDownloaded[indexPath.row])
+        openPreviewScreen(fileName: allFilesDownloadDisplay[indexPath.row])
         tableView.deselectRow(at: indexPath, animated: true)
     }
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            if allFilesDownloaded.count <= 1 {
+            let b64 = Base64Encode.shared
+            AppFileManager.shared.deleteFile(fileName: allFilesDownloadDisplay[indexPath.row])
+            allFilesDownloaded.remove(at: b64.locateIndexArray(arrayObj: allFilesDownloaded,
+                                                               searchObj: allFilesDownloadDisplay[indexPath.row]))
+            allFilesDownloadDisplay.remove(at: indexPath.item)
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            if allFilesDownloadDisplay.count < 1 {
                 emptyIconImage.isHidden = false
             }
-            AppFileManager.shared.deleteFile(fileName: allFilesDownloaded[indexPath.row])
-            allFilesDownloaded.remove(at: indexPath.item)
-            tableView.deleteRows(at: [indexPath], with: .fade)
         }
     }
     @objc override func refresherLoader() {
@@ -61,5 +86,22 @@ class FileDownloadViewController: FileListViewController {
                                                     padding: 0) as! UITableView
         emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
+    }
+    override func updateSearchResults(for searchController: UISearchController) {
+        if searchController.searchBar.text!.isEmpty {
+            isSearching = false
+            allFilesDownloadDisplay = allFilesDownloaded
+        } else {
+            isSearching = true
+            allFilesDownloadDisplay = allFilesDownloaded.filter { product in
+                return product.lowercased().contains(searchController.searchBar.text!.lowercased())
+            }
+        }
+        if allFilesDownloadDisplay.count > 0 {
+            emptyIconImage.isHidden = true
+        } else {
+            emptyIconImage.isHidden = false
+        }
+        mainTableView.reloadData()
     }
 }

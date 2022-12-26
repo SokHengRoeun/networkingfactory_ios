@@ -65,16 +65,23 @@ class AppFileManager {
     }
     // save download files
     func saveDownloadFile (fileData: Data, fileName: String, viewCont: UIViewController,
-                           tableCell: UITableViewCell) {
+                           fileDownID: String) {
         let fileListVC = viewCont as! FileListViewController
-        let cell = tableCell as! MainTableViewCell
+        let b64 = Base64Encode.shared
+        let elementIndex: IndexPath = b64.locateIndex(yourChoice: .updateAt,
+                                           arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                           searchObj: fileDownID)
+        var cell = MainTableViewCell()
+        if let mCell = fileListVC.mainTableView.cellForRow(at: elementIndex) {
+            cell = mCell as! MainTableViewCell
+        }
         let saveFile = AppFileManager.shared.storeFile(fileName: fileName, fileData: fileData)
+        fileListVC.userFileFullData.data[elementIndex.row].updatedAt = "Completed"
+        fileListVC.userFileFullDataDisplay.data[elementIndex.row].updatedAt = "Completed"
         if saveFile == "success" {
             print("Downloaded file saved")
         } else {
-            fileListVC.showAlertBox(title: "Download fail",
-                                    message: "This file already exist in your directory",
-                                    buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+            print("* File already exist >> so Skipped")
         }
         cell.sizeNameLabel.text = "file downloaded"
         cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
@@ -82,6 +89,7 @@ class AppFileManager {
         cell.downIconImage.isHidden = false
         cell.spinIndicator.isHidden = true
         cell.sizeNameLabel.isHidden = false
+        fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = fileListVC.notHaveDownAndUpload()
     }
     func getAllFilesDownload(viewCont: UIViewController) -> [String] {
         let fileListVC = viewCont as! FileListViewController
@@ -104,7 +112,11 @@ class AppFileManager {
         return downloadedFiles
     }
     func saveFileForUpload(fileUrl: URL) -> URL {
-        let fileName = fileUrl.lastPathComponent.replacingOccurrences(of: " ", with: "_")
+        var fileName = fileUrl.lastPathComponent.replacingOccurrences(of: " ", with: "_")
+        let unsafeChar = ["<", ">", "\"", "#", "%", "{", "}", "|", "\\", "^", "~", "`", "[", "]"]
+        for eachChar in unsafeChar {
+            fileName = fileName.replacingOccurrences(of: eachChar, with: "")
+        }
         deleteFile(fileName: fileName)
         do {
             try FileManager.default.createFile(atPath: fileDirectoryURL.appending(path: "download/\(fileName)").path(),

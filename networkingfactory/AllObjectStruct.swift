@@ -49,8 +49,9 @@ struct FullFilesData: Codable {
     var page = ApiPage(first: "", last: "", count: 0)
     var data = [ApiFiles(_id: "", folderId: "", name: "", createdAt: "", updatedAt: "")]
 }
-struct FolderIDStruct: Codable {
+struct FileRequestStruct: Codable {
     var folderId = ""
+    var perpage = 0
 }
 struct ApiFiles: Codable {
     var _id: String

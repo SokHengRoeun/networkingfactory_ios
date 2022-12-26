@@ -13,9 +13,7 @@ class InputFieldManager {
     func highlightEmpty (allInputfield: [UITextField]) {
         for eachInput in allInputfield {
             if eachInput.text == "" {
-                eachInput.hasBorderOutline(outlineColor: UIColor.red.cgColor,
-                                                outlineWidth: 1,
-                                                cornerRadius: 5)
+                eachInput.hasBorderOutline(outlineColor: UIColor.red.cgColor, outlineWidth: 1, cornerRadius: 5)
             } else {
                 eachInput.hasBorderOutline(false)
             }

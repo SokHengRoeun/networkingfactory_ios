@@ -11,15 +11,14 @@ import Foundation
 import Alamofire
 
 class ServerManager {
-    // 192.168.11.56 >> SokHeng Server
-    // 192.168.11.179 >> Nimit Server
+    // 192.168.11.56 >> SokHeng's Old Server
+    // 192.168.11.235 >> SokHeng's New Server
+    // 192.168.11.179 >> Nimit's Server
     static let shared = ServerManager()
-    static let serverIP =  "http://192.168.11.179:8000/"
+    static let serverIP =  "http://192.168.11.179:8000/" // <<<< change Server address here.
     func loggingIn (apiLogin: LoginObject, viewCon: UIViewController) {
         let loginScreen = viewCon as! LoginViewController
-        AF.request("\(ServerManager.serverIP)login",
-                   method: .post,
-                   parameters: apiLogin,
+        AF.request("\(ServerManager.serverIP)login", method: .post, parameters: apiLogin,
                    encoder: JSONParameterEncoder.default).response { response in
             // Check if the connection success or fail
             switch response.result {
@@ -125,6 +124,7 @@ class ServerManager {
     func deleteFile(fileId: String, authToken: String, viewCon: UIViewController) {
         let fileListVC = viewCon as! FileListViewController
         let apiRequest = DeleteFileObject(_id: fileId, token: authToken)
+        let b64 = Base64Encode.shared
         AF.request("\(ServerManager.serverIP)delete_file",
                    method: .post,
                    parameters: apiRequest,
@@ -145,18 +145,33 @@ class ServerManager {
                         viewCon.showAlertBox(title: "Connection error", message: "Can't connect to the server",
                                              buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     } else {
-                        fileListVC.refresherLoader()
-                        fileListVC.dismissLoadingAlert()
+                        let elementIndex: IndexPath = b64.locateIndex(yourChoice: ._id,
+                                                                      arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                                                      searchObj: fileId)
+                        fileListVC.userFileFullDataDisplay.page.count -= 1
+                        fileListVC.userFileFullData.page.count -= 1
+                        fileListVC.userFileFullDataDisplay.data.remove(at: elementIndex.row)
+                        fileListVC.userFileFullData.data.remove(at: b64.locateIndex(yourChoice: ._id,
+                                                                                    arrayObj: fileListVC.userFileFullData.data,
+                                                                                    searchObj: fileId))
+                        fileListVC.mainTableView.deleteRows(at: [elementIndex], with: .top)
+                        if fileListVC.userFileFullDataDisplay.data.count < 1 {
+                            fileListVC.emptyIconImage.isHidden = false
+                        }
                     }
                 }
             }
         }
     }
-    func uploadDocumentFromURL(fileURL: URL, viewCont: UIViewController, arrIndex: Int) {
+    func uploadDocumentFromURL(fileURL: URL, viewCont: UIViewController, uploadID: String) {
+        let b64 = Base64Encode.shared
         let fileListVC = viewCont as! FileListViewController
-        let cell = fileListVC.mainTableView.cellForRow(
-            at: IndexPath(row: Base64Encode.shared.minusOne(arrIndex),
-                          section: 0)) as! MainTableViewCell
+        var cell = MainTableViewCell()
+        if let mCell = fileListVC.mainTableView.cellForRow(at: b64.locateIndex(yourChoice: ._id,
+                                                                           arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                                                               searchObj: uploadID)) {
+            cell = mCell as! MainTableViewCell
+        }
         struct Response: Codable {
             var success: Bool
             var file: ApiFiles
@@ -173,6 +188,16 @@ class ServerManager {
         .validate()
         .uploadProgress(queue: .main, closure: { progress in
             // Current upload progress of file
+            if let mCell = fileListVC.mainTableView.cellForRow(at: b64.locateIndex(yourChoice: ._id,
+                arrayObj: fileListVC.userFileFullDataDisplay.data, searchObj: uploadID)) {
+                cell = mCell as! MainTableViewCell
+            }
+            cell.fileNameLabel.text = "Uploading (\(Int(progress.fractionCompleted * 100))%)"
+            cell.sizeNameLabel.isHidden = true
+            cell.loadingProgressBar.isHidden = false
+            cell.downIconImage.isHidden = true
+            cell.spinIndicator.isHidden = false
+            cell.spinIndicator.startAnimating()
             cell.loadingProgressBar.progress = Float(progress.fractionCompleted)
             print("Upload Progress: \(progress.fractionCompleted)")
         })
@@ -190,9 +215,12 @@ class ServerManager {
                 cell.sizeNameLabel.text = "file downloaded"
                 cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
                 fileListVC.emptyIconImage.isHidden = true
-                fileListVC.userFileFullData.data[Base64Encode.shared.minusOne(arrIndex)] = uploadedFileRespond.file
-                fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = !fileListVC.hasUploadingProcess()
-                if !fileListVC.hasUploadingProcess() {
+                fileListVC.userFileFullData.data[b64.locateIndex(yourChoice: ._id, arrayObj: fileListVC.userFileFullData.data,
+                                                                 searchObj: uploadID)] = uploadedFileRespond.file
+                fileListVC.userFileFullDataDisplay.data[b64.locateIndex(yourChoice: ._id, arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                                                 searchObj: uploadID)] = uploadedFileRespond.file
+                fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = fileListVC.notHaveDownAndUpload()
+                if fileListVC.notHaveDownAndUpload() {
                     fileListVC.mainTableView.addSubview(fileListVC.refreshControl)
                 }
             } catch {
@@ -206,7 +234,7 @@ class ServerManager {
     func getAllFilesAPI(viewCont: UIViewController) {
         let fileListVC = viewCont as! FileListViewController
         let apiHeaderToken: HTTPHeaders = ["token": fileListVC.folderEditObject.token]
-        let apiParameter = FolderIDStruct(folderId: fileListVC.folderEditObject._id)
+        let apiParameter = FileRequestStruct(folderId: fileListVC.folderEditObject._id, perpage: 2000)
         AF.request("\(ServerManager.serverIP)get_files",
                    method: .get, parameters: apiParameter, headers: apiHeaderToken).response { response in
             if let data = response.data {
@@ -223,6 +251,7 @@ class ServerManager {
                     } else {
                         do {
                             fileListVC.userFileFullData = try JSONDecoder().decode(FullFilesData.self, from: data)
+                            fileListVC.userFileFullDataDisplay = fileListVC.userFileFullData
                             fileListVC.sortFolderList()
                             fileListVC.mainTableView.reloadData()
                             fileListVC.emptyIconImage.isHidden = true
@@ -230,8 +259,7 @@ class ServerManager {
                             if !(String(data: data, encoding: .utf8)!.contains("{\"count\":0}")) {
                                 fileListVC.showAlertBox(title: "Data error", message: "User's data didn't loaded",
                                                         buttonAction: { _ in
-                                    fileListVC.navigationController?.popViewController(animated: true)
-                                },
+                                    fileListVC.navigationController?.popViewController(animated: true) },
                                                         buttonText: "Okay", buttonStyle: .default)
                             } else {
                                 fileListVC.emptyIconImage.isHidden = false
@@ -321,7 +349,20 @@ class ServerManager {
                                     if elementt._id == apiRequest._id {
                                         folderViewVC.userFullData.data.remove(at: indexx)
                                         folderViewVC.userFullData.page.count -= 1
-                                        folderViewVC.mainCollectionView!.deleteItems(at: [IndexPath(row: indexx, section: 0)])
+                                        if folderViewVC.isSearching == false {
+                                            folderViewVC.userFullDataForDisplay = folderViewVC.userFullData
+                                            folderViewVC.mainCollectionView!.deleteItems(at: [IndexPath(row: indexx, section: 0)])
+                                        } else {
+                                            for (inDeX, eleMenT) in folderViewVC.filteredFullData.data.enumerated() {
+                                                if eleMenT._id == apiRequest._id {
+                                                    folderViewVC.filteredFullData.page.count -= 1
+                                                    folderViewVC.filteredFullData.data.remove(at: inDeX)
+                                                    folderViewVC.userFullDataForDisplay = folderViewVC.filteredFullData
+                                                    folderViewVC.mainCollectionView!.deleteItems(at: [IndexPath(row: inDeX, section: 0)])
+                                                    break
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -332,34 +373,61 @@ class ServerManager {
         }
     }
     // Download file :
-    func downloadFile(fileId: String, fileName: String, authToken: String, viewCont: UIViewController,
-                      tableCell: UITableViewCell) {
-        let cell = tableCell as! MainTableViewCell
+    func downloadFile(fileId: String, fileName: String, authToken: String, viewCont: UIViewController, fileDownId: String) {
+        let b64 = Base64Encode.shared
+        let fileListVC = viewCont as! FileListViewController
+        var cell = fileListVC.mainTableView.cellForRow(at: b64.locateIndex(yourChoice: ._id,
+                                                                           arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                                                           searchObj: fileId)) as! MainTableViewCell
         cell.loadingProgressBar.tintColor = UIColor.green
+        cell.loadingProgressBar.progress = 0
         let apiHeaderToken: HTTPHeaders = ["token": authToken]
         AF.download("\(ServerManager.serverIP)file/\(fileId)/\(fileName)", method: .get, headers: apiHeaderToken)
             .downloadProgress(queue: .main, closure: { progress in
+                let cellIndex: IndexPath = b64.locateIndex(yourChoice: .updateAt,
+                                                           arrayObj: fileListVC.userFileFullDataDisplay.data,
+                                                           searchObj: fileDownId)
+                if let mCell = fileListVC.mainTableView.cellForRow(at: cellIndex) {
+                    cell = mCell as! MainTableViewCell
+                }
                 cell.loadingProgressBar.progress = Float(progress.fractionCompleted)
+                cell.downIconImage.isHidden = true
+                cell.sizeNameLabel.isHidden = true
+                cell.loadingProgressBar.isHidden = false
+                cell.spinIndicator.isHidden = false
+                cell.spinIndicator.startAnimating()
                 print("> \(progress.fractionCompleted)")
             }).responseData { response in
                 if !(response.value == nil) {
                     if response.value!.count > 1000 {
                         AppFileManager.shared.saveDownloadFile(fileData: response.value!, fileName: fileName,
-                                                               viewCont: viewCont, tableCell: tableCell)
+                                                               viewCont: viewCont, fileDownID: fileDownId)
+                        
                     } else {
                         if String(data: response.value!, encoding: .utf8)!.contains("\"error\"") {
                             viewCont.showAlertBox(title: "Can't download",
-                                                  message: "There is an error while trying to download a file",
+                                                  message: String(data: response.value!, encoding: .utf8)
+                                                  ?? "The server no longer have this file",
                                                   buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                         } else {
                             AppFileManager.shared.saveDownloadFile(fileData: response.value!, fileName: fileName,
-                                                                   viewCont: viewCont, tableCell: tableCell)
+                                                                   viewCont: viewCont, fileDownID: fileDownId)
                         }
                     }
                 } else {
                     viewCont.showAlertBox(title: "Can't download",
-                                          message: "This file is broken, could not be download",
-                                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+                                          message: "This file is broken, could not be download.\nDo you want to remove it?",
+                                          firstButtonAction: { _ in
+                        let b64 = Base64Encode.shared
+                        let atIndexx: Int = b64.locateIndex(yourChoice: ._id, arrayObj: fileListVC.userFileFullData.data,
+                                                            searchObj: fileId)
+                        fileListVC.userFileFullData.data[atIndexx].updatedAt = "Completed"},
+                                          firstButtonText: "Keep", firstButtonStyle: .cancel,
+                                          secondButtonAction: { _ in
+                        let serverManager = ServerManager.shared
+                        serverManager.deleteFile(fileId: fileId, authToken: authToken, viewCon: viewCont)
+                        fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = fileListVC.notHaveDownAndUpload()},
+                                          secondButtonText: "Delete", secondButtonStyle: .destructive)
                 }
             }
     }

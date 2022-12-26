@@ -15,6 +15,9 @@ class FolderListViewController: UIViewController {
     var gotRespondFromServer = false
     var userObj = UserContainerObject(id: "", email: "", first_name: "", last_name: "", token: "")
     var userFullData = FullFolderData()
+    var userFullDataForDisplay = FullFolderData()
+    var filteredFullData = FullFolderData()
+    var isSearching = false
     // UI elements :
     var mainCollectionView: UICollectionView?
     var emptyIconImage: UIImageView = {
@@ -39,9 +42,11 @@ class FolderListViewController: UIViewController {
         myLabel.textColor = UIColor.systemRed
         myLabel.font = .boldSystemFont(ofSize: 17)
         myLabel.textAlignment = .center
+        myLabel.isHidden = true
         return myLabel
     }()
     var refreshControl = UIRefreshControl()
+    var mainSearchController = UISearchController()
     func serverNotRespondAction() {
         gotRespondFromServer = false
         emptyIconImage.image = UIImage(
@@ -50,6 +55,7 @@ class FolderListViewController: UIViewController {
         cannotOpenLabel.isHidden = false
         showAlertBox(title: "Server not response", message: "Can't connect to the server",
                           buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+        vStackContainer.isHidden = false
     }
     func serverRespondAction() {
         gotRespondFromServer = true
@@ -58,7 +64,7 @@ class FolderListViewController: UIViewController {
                                                                    renderingMode: .alwaysOriginal)
         cannotOpenLabel.isHidden = true
     }
-    override func viewDidLoad() {
+    override func viewDidLoad() { // swiftlint:disable:this function_body_length
         super.viewDidLoad()
         notificationListenSystem()
         AppFileManager.shared.initOnStart()
@@ -96,6 +102,8 @@ class FolderListViewController: UIViewController {
         mainCollectionView!.addSubview(refreshControl)
         mainCollectionView!.alwaysBounceVertical = true
         view.addSubview(vStackContainer)
+        navigationItem.searchController = mainSearchController
+        mainSearchController.searchResultsUpdater = self
         vStackContainer.addArrangedSubview(emptyIconImage)
         vStackContainer.addArrangedSubview(cannotOpenLabel)
         refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
@@ -136,13 +144,13 @@ class FolderListViewController: UIViewController {
     }
     func sortFolderList() {
         userFullData.data.sort {
-            $0.name < $1.name
+            $0.name.lowercased() < $1.name.lowercased()
         }
     }
     @objc func getAllFolder() { // swiftlint:disable:this function_body_length
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
-        AF.request("\(ServerManager.serverIP)get_folder",
+        AF.request("\(ServerManager.serverIP)get_folder?perpage=2000",
                    method: .get,
                    headers: apiHeaderToken).response { response in
             // Check if the connection success or fail
@@ -180,6 +188,9 @@ class FolderListViewController: UIViewController {
                         do {
                             self.userFullData = try JSONDecoder().decode(FullFolderData.self, from: data)
                             self.sortFolderList()
+                            if self.isSearching == false {
+                                self.userFullDataForDisplay = self.userFullData
+                            }
                             self.mainCollectionView!.reloadData()
                             self.vStackContainer.isHidden = true
                             self.gotRespondFromServer = true
@@ -208,22 +219,22 @@ class FolderListViewController: UIViewController {
 
 extension FolderListViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return userFullData.page.count
+        return userFullDataForDisplay.page.count
     }
     func collectionView(_ collectionView: UICollectionView,
                         cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = mainCollectionView!.dequeueReusableCell(
             withReuseIdentifier: "MainCell", for: indexPath) as! MainCollectionViewCell
-        cell.folderLabel.text = userFullData.data[indexPath.row].name
+        cell.folderLabel.text = userFullDataForDisplay.data[indexPath.row].name
         return cell
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let destinationScene = FileListViewController()
-        destinationScene.folderEditObject._id = userFullData.data[indexPath.row]._id
-        destinationScene.folderEditObject.description = userFullData.data[indexPath.row].description
-        destinationScene.folderEditObject.name = userFullData.data[indexPath.row].name
+        destinationScene.folderEditObject._id = userFullDataForDisplay.data[indexPath.row]._id
+        destinationScene.folderEditObject.description = userFullDataForDisplay.data[indexPath.row].description
+        destinationScene.folderEditObject.name = userFullDataForDisplay.data[indexPath.row].name
         destinationScene.folderEditObject.token = userObj.token
-        destinationScene.title = userFullData.data[indexPath.row].name
+        destinationScene.title = userFullDataForDisplay.data[indexPath.row].name
         navigationController?.pushViewController(destinationScene, animated: true)
     }
     func collectionView(_ collectionView: UICollectionView,
@@ -253,12 +264,14 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         let tempApiObject = notification.object as! ApiFolders
         for (indexx, eachEle) in userFullData.data.enumerated() where tempApiObject.name < eachEle.name {
             userFullData.data.insert(tempApiObject, at: indexx)
+            userFullDataForDisplay = userFullData
             mainCollectionView!.insertItems(at: [IndexPath(row: indexx, section: 0)])
             break
         }
         if userFullData.page.count != userFullData.data.count {
             let theIndexPath = IndexPath(row: userFullData.data.count, section: 0)
             userFullData.data.insert(tempApiObject, at: theIndexPath.row)
+            userFullDataForDisplay = userFullData
             mainCollectionView!.insertItems(at: [theIndexPath])
         }
         mainCollectionView?.reloadData()
@@ -268,6 +281,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         let tempApiObject = notification.object as! ApiFolders
         for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
             userFullData.data[indexx] = tempApiObject
+            userFullDataForDisplay = userFullData
             mainCollectionView!.reloadData()
             break
         }
@@ -278,6 +292,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
             userFullData.page.count -= 1
             userFullData.data.remove(at: indexx)
+            userFullDataForDisplay = userFullData
             mainCollectionView!.deleteItems(at: [IndexPath(row: indexx, section: 0)])
             break
         }
@@ -286,9 +301,9 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         }
     }
     func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
-        let tempApi = FolderEditCreateObject(_id: userFullData.data[index]._id,
-                                             name: userFullData.data[index].name,
-                                             description: userFullData.data[index].description,
+        let tempApi = FolderEditCreateObject(_id: userFullDataForDisplay.data[index]._id,
+                                             name: userFullDataForDisplay.data[index].name,
+                                             description: userFullDataForDisplay.data[index].description,
                                              token: userObj.token)
         let context = UIContextMenuConfiguration(identifier: nil,
                                                  previewProvider: nil) { (action) -> UIMenu? in
@@ -298,13 +313,12 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                 let destinationScene = EditFolderViewController()
                 destinationScene.requestFromRoot = true
                 destinationScene.folderEditObject = tempApi
-                self.navigationController?.pushViewController(destinationScene, animated: true)
-            }
+                self.navigationController?.pushViewController(destinationScene, animated: true)}
             let delete = UIAction(title: "Delete", image: UIImage(systemName: "trash"),
                                   identifier: nil, discoverabilityTitle: nil,
                                   attributes: .destructive, state: .off) { (_) in
                 ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
-                if self.userFullData.page.count <= 1 {
+                if self.userFullDataForDisplay.page.count <= 1 {
                     self.vStackContainer.isHidden = false
                 }
             }
@@ -315,16 +329,36 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
     }
     func configureGeneralConstraint() {
         let conManager = ConstraintManager.shared
-        mainCollectionView!.isAutoResize(false)
         mainCollectionView! = conManager.fitTopBottom(child: mainCollectionView!, parent: view.safeAreaLayoutGuide,
                                                       padding: 0) as! UICollectionView
-        mainCollectionView!.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor,
-                                                  constant: 7).isActive = true
-        mainCollectionView!.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor,
-                                                   constant: -7).isActive = true
+        mainCollectionView! = conManager.fitLeftRight(child: mainCollectionView!,
+                                                      parent: view.safeAreaLayoutGuide, padding: 7) as! UICollectionView
         vStackContainer = conManager.absoluteCenter(child: vStackContainer,
                                                     parent: view.safeAreaLayoutGuide) as! UIStackView
         vStackContainer = conManager.fitLeftRight(child: vStackContainer, parent: view.safeAreaLayoutGuide,
                                                   padding: 0) as! UIStackView
+    }
+}
+
+extension FolderListViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        if searchController.searchBar.text!.isEmpty {
+            isSearching = false
+            userFullDataForDisplay = userFullData
+        } else {
+            isSearching = true
+            filteredFullData.data = userFullData.data.filter { product in
+                return product.name.lowercased().contains(searchController.searchBar.text!.lowercased())
+            }
+            filteredFullData.page.count = filteredFullData.data.count
+            userFullDataForDisplay = filteredFullData
+            userFullDataForDisplay.page.count = userFullDataForDisplay.data.count
+        }
+        if userFullDataForDisplay.page.count > 0 {
+            vStackContainer.isHidden = true
+        } else {
+            vStackContainer.isHidden = false
+        }
+        mainCollectionView?.reloadData()
     }
 }
