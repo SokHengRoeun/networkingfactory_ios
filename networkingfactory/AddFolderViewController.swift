@@ -100,6 +100,9 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
+    override func viewWillDisappear(_ animated: Bool) {
+        appBackgroundImage.isHidden = true
+    }
     func initStart () {
         title = "Create Folder"
         summitButton.setTitle("Create folder", for: .normal)

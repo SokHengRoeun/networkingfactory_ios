@@ -21,6 +21,7 @@
 		847BD425292DCB96008E1044 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 847BD424292DCB96008E1044 /* Assets.xcassets */; };
 		847BD428292DCB96008E1044 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 847BD426292DCB96008E1044 /* LaunchScreen.storyboard */; };
 		847BD431292E102D008E1044 /* RegisterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847BD430292E102D008E1044 /* RegisterViewController.swift */; };
+		84948C0229598E9B00A2DA53 /* CellAndFileViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84948C0129598E9B00A2DA53 /* CellAndFileViewManager.swift */; };
 		84B491062936FEDE00DEF3A4 /* FileListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B491052936FEDE00DEF3A4 /* FileListViewController.swift */; };
 		84B4910829372D7500DEF3A4 /* MainTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B4910729372D7500DEF3A4 /* MainTableViewCell.swift */; };
 		84C97A20294C2AD50093508F /* FileDownloadListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C97A1F294C2AD50093508F /* FileDownloadListViewController.swift */; };
@@ -51,6 +52,7 @@
 		847BD427292DCB96008E1044 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		847BD429292DCB96008E1044 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		847BD430292E102D008E1044 /* RegisterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterViewController.swift; sourceTree = "<group>"; };
+		84948C0129598E9B00A2DA53 /* CellAndFileViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellAndFileViewManager.swift; sourceTree = "<group>"; };
 		84B491052936FEDE00DEF3A4 /* FileListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileListViewController.swift; sourceTree = "<group>"; };
 		84B4910729372D7500DEF3A4 /* MainTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTableViewCell.swift; sourceTree = "<group>"; };
 		84C97A1F294C2AD50093508F /* FileDownloadListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDownloadListViewController.swift; sourceTree = "<group>"; };
@@ -119,6 +121,7 @@
 				8406494C2949CF640080D752 /* ServerManager.swift */,
 				84C97A23294C60430093508F /* AllObjectStruct.swift */,
 				84C97A25294C65AA0093508F /* IconManager.swift */,
+				84948C0129598E9B00A2DA53 /* CellAndFileViewManager.swift */,
 				84C97A27294C6A8D0093508F /* ConstraintManager.swift */,
 				844673C0294D6A9200600109 /* InputFieldManager.swift */,
 				847BD424292DCB96008E1044 /* Assets.xcassets */,
@@ -280,6 +283,7 @@
 			files = (
 				84B4910829372D7500DEF3A4 /* MainTableViewCell.swift in Sources */,
 				84C97A24294C60430093508F /* AllObjectStruct.swift in Sources */,
+				84948C0229598E9B00A2DA53 /* CellAndFileViewManager.swift in Sources */,
 				84EC30182930779100D17164 /* FolderListViewController.swift in Sources */,
 				847BD41D292DCB93008E1044 /* LoginViewController.swift in Sources */,
 				8406494D2949CF640080D752 /* ServerManager.swift in Sources */,

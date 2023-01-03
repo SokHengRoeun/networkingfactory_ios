@@ -62,20 +62,17 @@ class AppFileManager {
         }
     }
     // save download files
-    func saveDownloadFile (fileData: Data, fileName: String, viewCont: UIViewController,
-                           fileDownID: String) {
+    func saveDownloadFile (fileData: Data, fileId: String, fileName: String, viewCont: UIViewController) {
         let fileListVC = viewCont as! FileListViewController
         let b64 = Base64Encode.shared
-        let elementIndex: IndexPath = b64.locateIndex(yourChoice: .updateAt,
-                                           arrayObj: fileListVC.userFileFullDataDisplay.data,
-                                           searchObj: fileDownID)
+        let cellFileManager = CellAndFileViewManager.shared
+        let elementIndex = b64.locateIndex(lookingAt: fileListVC.filesOnDisplay, lookingFor: fileId, lookingType: .fileId)
         var cell = MainTableViewCell()
-        if let mCell = fileListVC.mainTableView.cellForRow(at: elementIndex) {
+        if let mCell = fileListVC.mainTableView.cellForRow(at: IndexPath(row: elementIndex, section: 0)) {
             cell = mCell as! MainTableViewCell
         }
         let saveFile = AppFileManager.shared.storeFile(fileName: fileName, fileData: fileData)
-        fileListVC.userFileFullData.data[elementIndex.row].updatedAt = "Completed"
-        fileListVC.userFileFullDataDisplay.data[elementIndex.row].updatedAt = "Completed"
+        fileListVC.filesOnDisplay[elementIndex].fileStatus = .downloaded
         if saveFile == "success" {
             print("Downloaded file saved")
         } else {
@@ -83,10 +80,7 @@ class AppFileManager {
         }
         cell.sizeNameLabel.text = "file downloaded"
         cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
-        cell.loadingProgressBar.isHidden = true
-        cell.downIconImage.isHidden = false
-        cell.spinIndicator.isHidden = true
-        cell.sizeNameLabel.isHidden = false
+        cell = cellFileManager.cellOfStatus(theCell: cell, setActive: .asComplete)
         fileListVC.navigationController?.navigationBar.isUserInteractionEnabled = fileListVC.notHaveDownAndUpload()
     }
     func getAllFilesDownload(viewCont: UIViewController) -> [String] {

@@ -27,7 +27,11 @@ class IconManager {
         } else if lowName.contains(".html") {
             return UIImage(systemName: "globe")!
         } else {
-            return UIImage(systemName: "doc")!
+            if lowName == "uploading a file ..."{
+                return UIImage(systemName: "icloud.and.arrow.up")!
+            } else {
+                return UIImage(systemName: "doc")!
+            }
         }
     }
 }

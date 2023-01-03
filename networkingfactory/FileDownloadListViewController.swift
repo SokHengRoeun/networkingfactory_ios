@@ -34,10 +34,11 @@ class FileDownloadViewController: FileListViewController {
             for eachFile in self.allFilesDownloaded {
                 let appFM = AppFileManager.shared
                 appFM.deleteFile(fileName: eachFile)
+                self.allFilesDownloaded = [String]()
             }
             self.emptyIconImage.isHidden = false
             self.allFilesDownloadDisplay = [String]()
-            self.mainTableView.reloadData()
+            self.reloadTableWithAnime()
         },
                      secondButtonText: "Delete All",
                      secondButtonStyle: .destructive)
@@ -67,8 +68,8 @@ class FileDownloadViewController: FileListViewController {
         if editingStyle == .delete {
             let b64 = Base64Encode.shared
             AppFileManager.shared.deleteFile(fileName: allFilesDownloadDisplay[indexPath.row])
-            allFilesDownloaded.remove(at: b64.locateIndexArray(arrayObj: allFilesDownloaded,
-                                                               searchObj: allFilesDownloadDisplay[indexPath.row]))
+            allFilesDownloaded.remove(at: b64.locateIndex(lookingAt: allFilesDownloaded,
+                                                          lookingFor: allFilesDownloadDisplay[indexPath.row]))
             allFilesDownloadDisplay.remove(at: indexPath.item)
             tableView.deleteRows(at: [indexPath], with: .fade)
             if allFilesDownloadDisplay.count < 1 {
@@ -86,6 +87,9 @@ class FileDownloadViewController: FileListViewController {
                                                     padding: 0) as! UITableView
         emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
+        uploadButton = conManager.fitAtBottom(child: uploadButton, parent: view.safeAreaLayoutGuide,
+                                              padding: 0) as! UIButton
+        uploadButton.isHidden = true
     }
     override func updateSearchResults(for searchController: UISearchController) {
         if searchController.searchBar.text!.isEmpty {
@@ -102,6 +106,6 @@ class FileDownloadViewController: FileListViewController {
         } else {
             emptyIconImage.isHidden = false
         }
-        mainTableView.reloadData()
+        reloadTableWithAnime()
     }
 }

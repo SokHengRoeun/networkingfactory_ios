@@ -14,21 +14,16 @@ import QuickLook
 class FileListViewController: UIViewController, UINavigationControllerDelegate {
     var fileUrlToPreview = URL(string: "")
     var isSearching = false
+    var sortByType = UserDefaults.standard.string(forKey: "sortby")
     // Init system data
     var folderEditObject = FolderEditCreateObject(_id: "", name: "", description: "", token: "")
-    var userFileFullData = FullFilesData()
-    var userFileFullDataDisplay = FullFilesData()
-    var filterUserFullFile = FullFilesData()
+    var fullFilesData = FullFilesData()
+    var filesOnDisplay = [FileApiListView]()
+    var filteredFullFileData = FullFilesData()
     // UI elementes :
     var mainTableView = UITableView()
-    var uploadButton: UIButton = {
-        let myButton = UIButton()
-        myButton.setTitle("Upload File", for: .normal)
-        myButton.backgroundColor = .link
-        myButton.hasShadow(shadowColor: UIColor.red.cgColor, shadowOpacity: 1, shadowOffset: .zero)
-        myButton.hasRoundCorner(theCornerRadius: 10)
-        return myButton
-    }()
+    var uploadButtonConfig = UIButton.Configuration.tinted()
+    var uploadButton = UIButton()
     var emptyIconImage: UIImageView = {
         let myImage = UIImageView()
         myImage.contentMode = .scaleAspectFit
@@ -36,144 +31,123 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
         myImage.widthAnchor.constraint(equalToConstant: 100).isActive = true
         return myImage
     }()
-    var appBackgroundImage: UIImageView = {
-        let myImage = UIImageView()
-        myImage.contentMode = .scaleAspectFill
-        myImage.image = UIImage(named: "filesBackground.jpg")
-        return myImage
-    }()
     var mainSearchController = UISearchController()
-    // Alert Loading Uploading LMAO
-    let loadingAlertView = UIAlertController(title: nil, message: "Loading ...", preferredStyle: .alert)
-    let loadingIndicator = UIActivityIndicatorView(frame: CGRect(x: 10, y: 5, width: 50, height: 50))
     let refreshControl = UIRefreshControl()
-    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    let sortFileButton = UIBarButtonItem(image: UIImage(systemName: "list.triangle"),
+                                         style: .plain, target: FileListViewController.self, action: nil)
     override func viewDidLoad() {
         super.viewDidLoad()
+        uploadButtonConfig.title = "Upload to cloud"
+        uploadButtonConfig.image = UIImage(systemName: "icloud.and.arrow.up")
+        uploadButton = UIButton(configuration: uploadButtonConfig)
+        // ^^^^^^^^^^
         view.addSubview(mainTableView)
+        view.addSubview(uploadButton)
         view.backgroundColor = UIColor.white
         refresherLoader()
         notificationListenSystem()
         initScreen()
-        // LoadingIndicator >>>>>>>>>>>>>>>>>>>>>>>>>>>
-        loadingIndicator.hidesWhenStopped = true
-        loadingIndicator.style = UIActivityIndicatorView.Style.medium
-        loadingIndicator.startAnimating()
-        loadingAlertView.view.addSubview(loadingIndicator)
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^
         mainTableView.register(MainTableViewCell.self, forCellReuseIdentifier: "MainCell")
         mainTableView.delegate = self
         mainTableView.dataSource = self
-        mainTableView.backgroundColor = UIColor(white: 1, alpha: 0)
+        mainTableView.backgroundColor = UIColor.clear
         refreshControl.addTarget(self, action: #selector(refresherLoader), for: UIControl.Event.valueChanged)
         navigationItem.searchController = mainSearchController
         mainSearchController.searchResultsUpdater = self
         view.addSubview(emptyIconImage)
-        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraints()
     }
     func initScreen () {
-        let editFolderButton = UIBarButtonItem(title: "Edit folder", style: .plain,
-                                               target: self, action: #selector(editFileOnclick))
-        navigationItem.setRightBarButton(editFolderButton, animated: true)
-        view.addSubview(uploadButton)
+        let editFolderButton = UIBarButtonItem(image: UIImage(systemName: "folder.badge.gearshape"),
+                                               style: .plain, target: self, action: #selector(editFolderOnclick))
+        sortFileButton.menu = UIMenu(title: "Sort by :", children: [
+            UIAction(title: "Upload Date", image: UIImage(systemName: "calendar"),
+                     state: sortByType == "date" ? .on: .off, handler: {_ in
+                self.sortByDateSelected()
+            }),
+            UIAction(title: "File Name", image: UIImage(systemName: "a.square"),
+                     state: sortByType != "date" ? .on: .off, handler: {_ in
+                self.sortByNameSelected()
+            })
+        ])
+        sortFileButton.changesSelectionAsPrimaryAction = true
+        navigationItem.setRightBarButtonItems([editFolderButton, sortFileButton], animated: true)
         uploadButton.addTarget(self, action: #selector(uploadFileOnclick), for: .touchUpInside)
         mainTableView.addSubview(refreshControl)
         emptyIconImage.image = UIImage(
             systemName: "questionmark.square.dashed")?.withTintColor(UIColor.lightGray,
                                                                      renderingMode: .alwaysOriginal)
     }
-    @objc func editFileOnclick() {
+    @objc func editFolderOnclick() {
         let destinationScene = EditFolderViewController()
         destinationScene.requestFromRoot = false
         destinationScene.folderEditObject = folderEditObject
         navigationController?.pushViewController(destinationScene, animated: true)
     }
     @objc func uploadFileOnclick() {
-        if hasUploadingProcess() {
-            showAlertBox(title: "Upload Multiple Files?",
-                         message: "Upload more than one file at once could damange it.\nDo you want to Continue?",
-                         firstButtonAction: nil,
-                         firstButtonText: "Cancel",
-                         firstButtonStyle: .cancel,
-                         secondButtonAction: {_ in
-                let sheetManager = ActionSheetManager.shared
-                sheetManager.presentUpload(viewCon: self) },
-                         secondButtonText: "Continue",
-                         secondButtonStyle: .destructive)
-        } else {
-            let sheetManager = ActionSheetManager.shared
-            sheetManager.presentUpload(viewCon: self)
-        }
+        let sheetManager = ActionSheetManager.shared
+        sheetManager.presentUpload(viewCon: self)
     }
 }
 
 extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     // Return the amount of Table cell
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return userFileFullDataDisplay.page.count
+        return filesOnDisplay.count
     }
     // Spawn tableView's cells <============================== Yo! this man spawn tableView cell [!]
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = mainTableView.dequeueReusableCell(
-            withIdentifier: "MainCell") as! MainTableViewCell
-        if userFileFullDataDisplay.data[indexPath.row]._id.lowercased().contains("uploading...") {
-            cell.loadingProgressBar.tintColor = UIColor.blue
-            cell.fileNameLabel.text = "Uploading a file ...."
-            cell.iconImage.image = UIImage(systemName: "icloud.and.arrow.up.fill")
-            cell.downIconImage.isHidden = true
-            cell.spinIndicator.isHidden = false
-            cell.spinIndicator.startAnimating()
-            cell.sizeNameLabel.isHidden = true
-            cell.loadingProgressBar.isHidden = false
-        } else {
-            let thisFileName = userFileFullDataDisplay.data[indexPath.row].name
-            cell.iconImage.image = IconManager.shared.iconFileType(fileName: thisFileName)
-            cell.fileNameLabel.text = thisFileName
-            cell.sizeNameLabel.isHidden = false
-            cell.loadingProgressBar.isHidden = true
-        }
-        //
-        // Icon modifier
-        if !(userFileFullDataDisplay.data[indexPath.row]._id.contains("uploading...")) {
-            if AppFileManager.shared.hasFile(fileName: userFileFullDataDisplay.data[indexPath.row].name) {
-                cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
-                cell.downIconImage.isHidden = false
-                cell.sizeNameLabel.text = "file downloaded"
-            } else {
-                cell.downIconImage.image = UIImage(systemName: "arrow.down.to.line")
-                cell.downIconImage.isHidden = false
-                cell.sizeNameLabel.text = "file in the cloud"
-            }
-        } else {
-            cell.downIconImage.image = UIImage(systemName: "rays")
+        var cell = mainTableView.dequeueReusableCell(withIdentifier: "MainCell") as! MainTableViewCell
+        let iconManager = IconManager.shared
+        let cellFileManager = CellAndFileViewManager.shared
+        // Construct cell
+        cell.fileNameLabel.text = filesOnDisplay[indexPath.row].fileName
+        cell.iconImage.image = iconManager.iconFileType(fileName: filesOnDisplay[indexPath.row].fileName)
+        cell.loadingProgressBar.progress = filesOnDisplay[indexPath.row].progressValue
+        switch filesOnDisplay[indexPath.row].fileStatus {
+        case .downloaded:
+            cell = cellFileManager.cellOfStatus(theCell: cell, setActive: .asComplete)
+            cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+            cell.sizeNameLabel.text = "file downloaded"
+        case .isDownloading:
+            cell = cellFileManager.cellOfStatus(theCell: cell, setActive: .asProgressing)
+            cell.loadingProgressBar.tintColor = UIColor.green
+        case .inCloud:
+            cell = cellFileManager.cellOfStatus(theCell: cell, setActive: .asComplete)
+            cell.downIconImage.image = UIImage(systemName: "arrow.down.to.line")
+            cell.sizeNameLabel.text = "file in the cloud"
+        case .isUploading:
+            cell = cellFileManager.cellOfStatus(theCell: cell, setActive: .asProgressing)
+            cell.iconImage.image = UIImage(systemName: "icloud.and.arrow.up")
+            cell.fileNameLabel.text = "Uploading a file ..."
+            cell.loadingProgressBar.tintColor = UIColor.link
         }
         return cell
     }
     // Preform action when tableView cell got click <================== tableView cell Onclick [!]
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let cell = tableView.cellForRow(at: indexPath) as! MainTableViewCell
-        let usaData = userFileFullDataDisplay.data[indexPath.row]
-        if usaData._id.lowercased().contains("upload") || usaData.updatedAt.lowercased().contains("download") {
-            print("data contain upload or download")
-        } else {
-            if AppFileManager.shared.hasFile(fileName: userFileFullDataDisplay.data[indexPath.row].name) {
-                openPreviewScreen(fileName: userFileFullDataDisplay.data[indexPath.row].name)
+        let selectedObj = filesOnDisplay[indexPath.row]
+        switch selectedObj.fileStatus {
+        case .downloaded:
+            openPreviewScreen(fileName: filesOnDisplay[indexPath.row].fileName)
+            cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+        case .isDownloading:
+            print("> Try to cancel download?")
+        case .inCloud:
+            if AppFileManager.shared.hasFile(fileName: filesOnDisplay[indexPath.row].fileName) {
+                filesOnDisplay[indexPath.row].fileStatus = .downloaded
                 cell.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+                cell.sizeNameLabel.text = "file downloaded"
             } else {
-                let randomDownId = "Download_\(Int.random(in: 0...9999999999))_\(Int.random(in: 0...9999999999))"
-                userFileFullDataDisplay.data[indexPath.row].updatedAt = randomDownId
-                cell.sizeNameLabel.isHidden = true
-                cell.loadingProgressBar.isHidden = false
-                cell.downIconImage.isHidden = true
-                cell.spinIndicator.isHidden = false
-                cell.spinIndicator.startAnimating()
+                filesOnDisplay[indexPath.row].fileStatus = .isDownloading
                 navigationController?.navigationBar.isUserInteractionEnabled = false
-                ServerManager.shared.downloadFile(fileId: userFileFullDataDisplay.data[indexPath.row]._id,
-                                                  fileName: userFileFullDataDisplay.data[indexPath.row].name,
-                                                  authToken: folderEditObject.token, viewCont: self,
-                                                  fileDownId: userFileFullDataDisplay.data[indexPath.row].updatedAt)
+                ServerManager.shared.downloadFile(fileId: filesOnDisplay[indexPath.row].fileID,
+                                                  fileName: filesOnDisplay[indexPath.row].fileName,
+                                                  authToken: folderEditObject.token, viewCont: self)
             }
+        case .isUploading:
+            print("> Try to cancel upload?")
         }
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -181,8 +155,13 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle,
                    forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            ServerManager.shared.deleteFile(fileId: self.userFileFullDataDisplay.data[indexPath.row]._id,
-                                        authToken: self.folderEditObject.token, viewCon: self)
+            let fileOfDisplay = filesOnDisplay[indexPath.row]
+            if fileOfDisplay.fileStatus == .inCloud || fileOfDisplay.fileStatus == .downloaded {
+                ServerManager.shared.deleteFile(fileId: self.filesOnDisplay[indexPath.row].fileID,
+                                                authToken: self.folderEditObject.token, viewCon: self)
+            } else {
+                print("* Can't delete the processing file")
+            }
         }
     }
     // Function to open preview screen and load the data
@@ -212,41 +191,54 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     @objc func refresherLoader() {
         if notHaveDownAndUpload() && !isSearching {
             ServerManager.shared.getAllFilesAPI(viewCont: self)
-            mainTableView.reloadData()
+            reloadTableWithAnime()
         } else {
             refreshControl.endRefreshing()
         }
     }
-    @objc func sortFolderList() {
-        userFileFullDataDisplay.data.sort {
-            $0.name.lowercased() < $1.name.lowercased()
+    @objc func sortingSystem() {
+        if sortByType == "date" {
+            filesOnDisplay.sort {
+                $0.uploadDate < $1.uploadDate
+            }
+            print("* List sorted by Date")
+        } else {
+            filesOnDisplay.sort {
+                $0.fileName.lowercased() < $1.fileName.lowercased()
+            }
+            print("* List sorted by Name")
         }
+        reloadTableWithAnime()
+    }
+    @objc func sortByNameSelected() {
+        sortByType = "name"
+        UserDefaults.standard.set("name", forKey: "sortby")
+        sortingSystem()
+    }
+    @objc func sortByDateSelected() {
+        sortByType = "date"
+        UserDefaults.standard.set("date", forKey: "sortby")
+        sortingSystem()
     }
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 60
     }
     @objc func configureGeneralConstraints() {
         let conManager = ConstraintManager.shared
-        mainTableView = conManager.absoluteFitToThe(child: mainTableView, parent: view.safeAreaLayoutGuide,
-                                            padding: 0) as! UITableView
         uploadButton = conManager.fitAtBottom(child: uploadButton, parent: view.safeAreaLayoutGuide,
                                               padding: 20) as! UIButton
+        mainTableView = conManager.fitAtTop(child: mainTableView, parent: view.safeAreaLayoutGuide,
+                                            padding: 0) as! UITableView
+        mainTableView.layer.zPosition = 1
+        mainTableView.bottomAnchor.constraint(equalTo: uploadButton.topAnchor, constant: -20).isActive = true
         emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
         emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
                                                    parent: view.safeAreaLayoutGuide) as! UIImageView
-        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
-                                                         padding: 0) as! UIImageView
-    }
-
-    func dismissLoadingAlert() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.loadingAlertView.dismiss(animated: true)
-        }
     }
     func hasUploadingProcess() -> Bool {
         var havePro = false
-        for eachEle in userFileFullDataDisplay.data where eachEle._id.lowercased().contains("upload") {
+        for eachEle in filesOnDisplay where eachEle.fileStatus == .isUploading {
             havePro = true
             break
         }
@@ -254,7 +246,7 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     func hasDownloadingProcess() -> Bool {
         var havePro = false
-        for eachEle in userFileFullDataDisplay.data where eachEle.updatedAt.lowercased().contains("download") {
+        for eachEle in filesOnDisplay where eachEle.fileStatus == .isDownloading {
             havePro = true
             break
         }
@@ -273,16 +265,12 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
         navigationController?.navigationBar.isUserInteractionEnabled = false
         refreshControl.removeFromSuperview()
-        let tempUploadID = "uploading...\(Int.random(in: 0...9999999999))"
-        implementFakeUpload(uploadID: tempUploadID, fileUrl: url)
-        userFileFullData.page.count += 1
-        userFileFullDataDisplay.page.count += 1
-        sortFolderList() // << new
-        mainTableView.reloadData()
+        let tempUploadID = "upload_\(Int.random(in: 0...9999999999))_\(Int.random(in: 0...9999999999))"
+        implementFakeUpload(uploadID: tempUploadID, fileName: url.lastPathComponent, fileUrl: url)
+        fullFilesData.page.count += 1
+        sortingSystem() // << new
+        reloadTableWithAnime()
         uploadFileAction(uploadID: tempUploadID, fileUrl: url)
-        controller.dismiss(animated: true)
-    }
-    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         controller.dismiss(animated: true)
     }
     // Image picker controller
@@ -290,23 +278,23 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
                                didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         navigationController?.navigationBar.isUserInteractionEnabled = false
         refreshControl.removeFromSuperview()
-        let tempUploadID = "uploading...\(Int.random(in: 0...9999999999))"
+        let tempUploadID = "upload_\(Int.random(in: 0...9999999999))_\(Int.random(in: 0...9999999999))"
         var pickedMediaUrl = URL(string: "")
         if info[.mediaType] as! String == "public.movie" {
             pickedMediaUrl = info[.mediaURL] as? URL
         } else {
             pickedMediaUrl = info[.imageURL] as? URL
         }
-        implementFakeUpload(uploadID: tempUploadID, fileUrl: pickedMediaUrl!)
-        userFileFullData.page.count += 1
-        userFileFullDataDisplay.page.count += 1
-        sortFolderList()
-        mainTableView.reloadData()
+        implementFakeUpload(uploadID: tempUploadID, fileName: pickedMediaUrl!.lastPathComponent,
+                            fileUrl: pickedMediaUrl!)
+        fullFilesData.page.count += 1
+        sortingSystem()
+        reloadTableWithAnime()
         uploadFileAction(uploadID: tempUploadID, fileUrl: pickedMediaUrl!)
         picker.dismiss(animated: true)
     }
     func uploadFileAction(uploadID: String, fileUrl: URL) {
-        for eachEle in userFileFullDataDisplay.data where eachEle._id == uploadID {
+        for eachEle in filesOnDisplay where eachEle.fileID == uploadID {
             ServerManager.shared.uploadDocumentFromURL(
                 fileURL: AppFileManager.shared.saveFileForUpload(fileUrl: fileUrl),
                 viewCont: self, uploadID: uploadID)
@@ -314,21 +302,16 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
         }
         emptyIconImage.isHidden = true
     }
-    func implementFakeUpload(uploadID: String, fileUrl: URL) {
-        if userFileFullData.page.count == 0 && userFileFullData.data.count != 0 {
-            userFileFullData.data[0] = ApiFiles(_id: uploadID, folderId: "", name: fileUrl.lastPathComponent,
-                                                createdAt: "", updatedAt: "")
-            userFileFullDataDisplay.data[0] = ApiFiles(_id: uploadID, folderId: "", name: fileUrl.lastPathComponent,
-                                                createdAt: "", updatedAt: "")
+    func implementFakeUpload(uploadID: String, fileName: String, fileUrl: URL) {
+        filesOnDisplay.append(FileApiListView(fileID: uploadID, fileName: fileName,
+                                              fileStatus: .isUploading, progressValue: 0, uploadDate: "9999-99-99"))
+        if fullFilesData.data.count <= fullFilesData.page.count {
+            fullFilesData.data.append(ApiFiles(_id: uploadID, folderId: folderEditObject._id,
+                                               name: fileName, createdAt: "", updatedAt: ""))
         } else {
-            userFileFullData.data.append(ApiFiles(_id: uploadID, folderId: "", name: fileUrl.lastPathComponent,
-                                                  createdAt: "", updatedAt: ""))
-            userFileFullDataDisplay.data.append(ApiFiles(_id: uploadID, folderId: "", name: fileUrl.lastPathComponent,
-                                                  createdAt: "", updatedAt: ""))
+            fullFilesData.data[0] = ApiFiles(_id: uploadID, folderId: folderEditObject._id,
+                                               name: fileName, createdAt: "", updatedAt: "")
         }
-    }
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true)
     }
 }
 
@@ -343,22 +326,30 @@ extension FileListViewController: QLPreviewControllerDataSource {
 
 extension FileListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
+        let cellFileManager = CellAndFileViewManager.shared
         if searchController.searchBar.text!.isEmpty {
             isSearching = false
-            userFileFullDataDisplay = userFileFullData
+            filesOnDisplay = cellFileManager.fileDataToViewList(apiDataList: fullFilesData)
+            uploadButton.isHidden = false
         } else {
             isSearching = true
-            filterUserFullFile.data = userFileFullData.data.filter { product in
+            filteredFullFileData.data = fullFilesData.data.filter { product in
                 return product.name.lowercased().contains(searchController.searchBar.text!.lowercased())
             }
-            filterUserFullFile.page.count = filterUserFullFile.data.count
-            userFileFullDataDisplay = filterUserFullFile
+            filteredFullFileData.page.count = filteredFullFileData.data.count
+            filesOnDisplay = cellFileManager.fileDataToViewList(apiDataList: filteredFullFileData)
+            uploadButton.isHidden = true
         }
-        if userFileFullDataDisplay.page.count > 0 {
+        if filesOnDisplay.count > 0 {
             emptyIconImage.isHidden = true
         } else {
             emptyIconImage.isHidden = false
         }
-        mainTableView.reloadData()
+        reloadTableWithAnime()
+    }
+    func reloadTableWithAnime() {
+        let range = NSMakeRange(0, self.mainTableView.numberOfSections) // swiftlint:disable:this legacy_constructor
+        let sections = NSIndexSet(indexesIn: range)
+        self.mainTableView.reloadSections(sections as IndexSet, with: .automatic)
     }
 }

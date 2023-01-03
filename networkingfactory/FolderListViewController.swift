@@ -45,12 +45,6 @@ class FolderListViewController: UIViewController {
         myLabel.isHidden = true
         return myLabel
     }()
-    var appBackgroundImage: UIImageView = {
-        let myImage = UIImageView()
-        myImage.contentMode = .scaleAspectFill
-        myImage.image = UIImage(named: "folderBackground.jpg")
-        return myImage
-    }()
     var refreshControl = UIRefreshControl()
     var mainSearchController = UISearchController()
     func serverNotRespondAction() {
@@ -107,14 +101,13 @@ class FolderListViewController: UIViewController {
         mainCollectionView!.register(MainCollectionViewCell.self, forCellWithReuseIdentifier: "MainCell")
         mainCollectionView!.addSubview(refreshControl)
         mainCollectionView!.alwaysBounceVertical = true
-        mainCollectionView!.backgroundColor = UIColor(white: 1, alpha: 0)
+        mainCollectionView!.backgroundColor = UIColor.clear
         view.addSubview(vStackContainer)
         navigationItem.searchController = mainSearchController
         mainSearchController.searchResultsUpdater = self
         vStackContainer.addArrangedSubview(emptyIconImage)
         vStackContainer.addArrangedSubview(cannotOpenLabel)
         refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
-        view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraint()
     }
     @objc func signoutOnclick() {
@@ -252,17 +245,13 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
     }
     func notificationListenSystem() {
         NotificationCenter.default.addObserver(self, selector: #selector(getAllFolder),
-                                               name: Notification.Name(rawValue: "refreshView"),
-                                               object: nil)
+                                               name: Notification.Name(rawValue: "refreshView"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deleteFolder(_:)),
-                                               name: Notification.Name(rawValue: "delete_folder"),
-                                               object: nil)
+                                               name: Notification.Name(rawValue: "delete_folder"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(addFolder),
-                                               name: Notification.Name(rawValue: "create_folder"),
-                                               object: nil)
+                                               name: Notification.Name(rawValue: "create_folder"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateFolder),
-                                               name: Notification.Name(rawValue: "update_folder"),
-                                               object: nil)
+                                               name: Notification.Name(rawValue: "update_folder"), object: nil)
     }
     @objc func addFolder(_ notification: NSNotification) {
         if userFullData.page.count == 0 && userFullData.data.count > 0 {
@@ -345,8 +334,6 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                                                     parent: view.safeAreaLayoutGuide) as! UIStackView
         vStackContainer = conManager.fitLeftRight(child: vStackContainer, parent: view.safeAreaLayoutGuide,
                                                   padding: 0) as! UIStackView
-        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
-                                                         padding: 0) as! UIImageView
     }
 }
 
@@ -369,6 +356,10 @@ extension FolderListViewController: UISearchResultsUpdating {
         } else {
             vStackContainer.isHidden = false
         }
-        mainCollectionView?.reloadData()
+        // swiftlint:disable legacy_constructor
+        let range = NSMakeRange(0, self.mainCollectionView!.numberOfSections)
+        let sections = NSIndexSet(indexesIn: range)
+        self.mainCollectionView!.reloadSections(sections as IndexSet)
+        // mainCollectionView?.reloadData()
     }
 }

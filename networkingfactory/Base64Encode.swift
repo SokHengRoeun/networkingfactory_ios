@@ -48,46 +48,47 @@ class Base64Encode {
         }
     }
     enum FileApiChoice {
-        case _id // swiftlint:disable:this identifier_name
-        case name
-        case createAt
-        case updateAt
+        case fileId
+        case fileName
     }
-    func locateIndex(yourChoice: FileApiChoice, arrayObj: [ApiFiles], searchObj: String) -> IndexPath {
-        var indexToReturn = IndexPath(row: 0, section: 0)
-        switch yourChoice {
-        case ._id:
-            for (indexx, elementt) in arrayObj.enumerated() where elementt._id == searchObj {
-                indexToReturn.row = indexx
+    func locateIndex(lookingAt: [FileApiListView], lookingFor: String, lookingType: FileApiChoice) -> Int {
+        var indexForReturn = 0
+        switch lookingType {
+        case .fileId:
+            for (indeX, elemenT) in lookingAt.enumerated() where elemenT.fileID == lookingFor {
+                indexForReturn = indeX
                 break
             }
-        case .name:
-            for (indexx, elementt) in arrayObj.enumerated() where elementt.name == searchObj {
-                indexToReturn.row = indexx
-                break
-            }
-        case .createAt:
-            for (indexx, elementt) in arrayObj.enumerated() where elementt.createdAt == searchObj {
-                indexToReturn.row = indexx
-                break
-            }
-        case .updateAt:
-            for (indexx, elementt) in arrayObj.enumerated() where elementt.updatedAt == searchObj {
-                indexToReturn.row = indexx
+        case .fileName:
+            for (indeX, elemenT) in lookingAt.enumerated() where elemenT.fileName == lookingFor {
+                indexForReturn = indeX
                 break
             }
         }
-        return indexToReturn
+        return indexForReturn
     }
-    func locateIndex(yourChoice: FileApiChoice, arrayObj: [ApiFiles], searchObj: String) -> Int {
-        return locateIndex(yourChoice: yourChoice, arrayObj: arrayObj, searchObj: searchObj).row
+    func locateIndex(lookingAt: [ApiFiles], lookingFor: String, lookingType: FileApiChoice) -> Int {
+        var indexForReturn = 0
+        switch lookingType {
+        case .fileId:
+            for (indeX, elemenT) in lookingAt.enumerated() where elemenT._id == lookingFor {
+                indexForReturn = indeX
+                break
+            }
+        case .fileName:
+            for (indeX, elemenT) in lookingAt.enumerated() where elemenT.name == lookingFor {
+                indexForReturn = indeX
+                break
+            }
+        }
+        return indexForReturn
     }
-    func locateIndexArray(arrayObj: [String], searchObj: String) -> Int {
-        var forReturn = 0
-        for (indexx, elementt) in arrayObj.enumerated() where elementt == searchObj {
-            forReturn = indexx
+    func locateIndex(lookingAt: [String], lookingFor: String) -> Int {
+        var indexForReturn = 0
+        for (inDex, eleMent) in lookingAt.enumerated() where eleMent == lookingFor {
+            indexForReturn = inDex
             break
         }
-        return forReturn
+        return indexForReturn
     }
 }

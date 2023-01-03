@@ -66,3 +66,16 @@ struct FolderEditCreateObject: Codable {
     var description: String
     var token: String
 }
+struct FileApiListView {
+    var fileID: String
+    var fileName: String
+    enum FileStatusEnum {
+        case downloaded
+        case isDownloading
+        case inCloud
+        case isUploading
+    }
+    var fileStatus = FileStatusEnum.inCloud
+    var progressValue: Float
+    var uploadDate: String
+}
