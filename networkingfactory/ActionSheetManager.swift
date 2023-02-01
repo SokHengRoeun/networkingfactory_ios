@@ -31,9 +31,9 @@ class ActionSheetManager {
         let galleryIcon = UIImage(systemName: "photo.fill.on.rectangle.fill")
         let galleryAction = UIAlertAction(title: "Gallery Photo", style: .default, handler: { _ in
             let imagePicker = UIImagePickerController()
+            imagePicker.delegate = fileVC
             imagePicker.sourceType = .photoLibrary
             imagePicker.mediaTypes = ["public.image", "public.movie"]
-            imagePicker.delegate = fileVC
             imagePicker.allowsEditing = true
             fileVC.present(imagePicker, animated: true)
         })

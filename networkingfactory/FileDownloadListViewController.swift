@@ -15,14 +15,16 @@ class FileDownloadViewController: FileListViewController {
     var allFilesDownloadDisplay = [String]()
     var filterAllFilesDownloaded = [String]()
     override func initScreen() {
-        emptyIconImage.image = UIImage(
-            systemName: "tray.and.arrow.down")?.withTintColor(UIColor.lightGray,
-                                                              renderingMode: .alwaysOriginal)
+        emptyIconImage.image = UIImage(systemName:
+                                        "tray.and.arrow.down")?.withTintColor(UIColor.lightGray,
+                                                                              renderingMode: .alwaysOriginal)
+        emptyIconImage.isHidden = false
         let clearDownloadButton = UIBarButtonItem(title: "Delete All", style: .done,
-                                               target: self, action: #selector(deleteAllDownloads))
+                                                  target: self, action: #selector(deleteAllDownloads))
         clearDownloadButton.tintColor = UIColor.red
         navigationItem.setRightBarButton(clearDownloadButton, animated: true)
         allFilesDownloadDisplay = allFilesDownloaded
+        emptyImageResolver()
     }
     @objc func deleteAllDownloads() {
         showAlertBox(title: "Delete all download?",
@@ -36,9 +38,9 @@ class FileDownloadViewController: FileListViewController {
                 appFM.deleteFile(fileName: eachFile)
                 self.allFilesDownloaded = [String]()
             }
-            self.emptyIconImage.isHidden = false
+            self.vStackContainer.isHidden = false
             self.allFilesDownloadDisplay = [String]()
-            self.reloadTableWithAnime()
+            self.reloadTableView(withAnimation: true)
         },
                      secondButtonText: "Delete All",
                      secondButtonStyle: .destructive)
@@ -72,24 +74,19 @@ class FileDownloadViewController: FileListViewController {
                                                           lookingFor: allFilesDownloadDisplay[indexPath.row]))
             allFilesDownloadDisplay.remove(at: indexPath.item)
             tableView.deleteRows(at: [indexPath], with: .fade)
-            if allFilesDownloadDisplay.count < 1 {
-                emptyIconImage.isHidden = false
-            }
+            emptyImageResolver()
         }
     }
-    @objc override func refresherLoader() {
+    @objc override func requestMoreFiles() {
         allFilesDownloaded = AppFileManager.shared.getAllFilesDownload(viewCont: self)
         mainTableView.reloadData()
     }
     @objc override func configureGeneralConstraints() {
-        let conManager = ConstraintManager.shared
-        mainTableView = conManager.absoluteFitToThe(child: mainTableView, parent: view.safeAreaLayoutGuide,
-                                                    padding: 0) as! UITableView
-        emptyIconImage = conManager.absoluteCenter(child: emptyIconImage,
-                                                   parent: view.safeAreaLayoutGuide) as! UIImageView
-        uploadButton = conManager.fitAtBottom(child: uploadButton, parent: view.safeAreaLayoutGuide,
-                                              padding: 0) as! UIButton
+        mainTableView.absoluteFitToThe(parent: view.safeAreaLayoutGuide, padding: 0)
+        uploadButton.fitAtBottom(parent: view.safeAreaLayoutGuide, padding: 0)
         uploadButton.isHidden = true
+        vStackContainer.absoluteCenter(parent: view.safeAreaLayoutGuide)
+        vStackContainer.fitLeftRight(parent: view.safeAreaLayoutGuide, padding: 0)
     }
     override func updateSearchResults(for searchController: UISearchController) {
         if searchController.searchBar.text!.isEmpty {
@@ -101,11 +98,14 @@ class FileDownloadViewController: FileListViewController {
                 return product.lowercased().contains(searchController.searchBar.text!.lowercased())
             }
         }
+        emptyImageResolver()
+        reloadTableView(withAnimation: true)
+    }
+    override func emptyImageResolver() {
         if allFilesDownloadDisplay.count > 0 {
-            emptyIconImage.isHidden = true
+            vStackContainer.isHidden = true
         } else {
-            emptyIconImage.isHidden = false
+            vStackContainer.isHidden = false
         }
-        reloadTableWithAnime()
     }
 }

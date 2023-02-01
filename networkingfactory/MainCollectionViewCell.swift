@@ -24,7 +24,7 @@ class MainCollectionViewCell: UICollectionViewCell {
     }()
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = UIColor.white
+        contentView.backgroundColor = traitCollection.userInterfaceStyle == .light ? UIColor.white : UIColor.black
         contentView.hasBorderOutline(outlineColor: UIColor.link.cgColor, outlineWidth: 1, cornerRadius: 13.5)
         contentView.addSubview(mainIcon)
         contentView.addSubview(folderLabel)
@@ -32,6 +32,12 @@ class MainCollectionViewCell: UICollectionViewCell {
     }
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    func offlineService() {
+        contentView.layer.borderColor = UIColor.gray.cgColor
+        mainIcon.image = UIImage(systemName: "folder.fill")?.withTintColor(UIColor.gray,
+                                                                           renderingMode: .alwaysOriginal)
+        folderLabel.textColor = UIColor.gray
     }
     func configurateConstraints() {
         mainIcon.translatesAutoresizingMaskIntoConstraints = false

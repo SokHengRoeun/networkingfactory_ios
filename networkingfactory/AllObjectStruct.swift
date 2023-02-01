@@ -8,19 +8,21 @@
 // swiftlint:disable identifier_name
 
 import Foundation
+import UIKit
+import Alamofire
 
-struct UserContainerObject: Codable {
+struct UserDetailStruct: Codable {
     var id: String
     var email: String
     var first_name: String
     var last_name: String
     var token: String
 }
-struct LoginObject: Encodable {
+struct LoginStruct: Encodable {
     var email: String
     var password: String
 }
-struct RegisterUserObject: Encodable {
+struct RegisterStruct: Encodable {
     let first_name: String
     let last_name: String
     let email: String
@@ -29,7 +31,7 @@ struct RegisterUserObject: Encodable {
 struct ErrorObject: Codable {
     var error = ""
 }
-struct FullFolderData: Codable {
+struct FullFolderStruct: Codable {
     var page = ApiPage(first: "", last: "", count: 0)
     var data = [ApiFolders(_id: "", name: "", description: "", createdAt: "", updatedAt: "")]
 }
@@ -45,13 +47,15 @@ struct ApiFolders: Codable {
     var createdAt: String
     var updatedAt: String
 }
-struct FullFilesData: Codable {
+struct FullFileStruct: Codable {
     var page = ApiPage(first: "", last: "", count: 0)
     var data = [ApiFiles(_id: "", folderId: "", name: "", createdAt: "", updatedAt: "")]
 }
 struct FileRequestStruct: Codable {
     var folderId = ""
-    var perpage = 0
+    var perpage = 20
+    var before: String?
+    var after: String?
 }
 struct ApiFiles: Codable {
     var _id: String
@@ -60,22 +64,36 @@ struct ApiFiles: Codable {
     var createdAt: String
     var updatedAt: String
 }
-struct FolderEditCreateObject: Codable {
+struct CreateFolderStruct: Codable {
     var _id: String
     var name: String
     var description: String
     var token: String
 }
-struct FileApiListView {
+struct FileForViewStruct {
     var fileID: String
     var fileName: String
-    enum FileStatusEnum {
-        case downloaded
-        case isDownloading
-        case inCloud
-        case isUploading
-    }
-    var fileStatus = FileStatusEnum.inCloud
-    var progressValue: Float
+    var fileStatus: FileStatusEnum
+    var downRequest: DownloadRequest?
+    var upRequest: UploadRequest?
     var uploadDate: String
+}
+enum FileStatusEnum {
+    case downloaded
+    case isDownloading
+    case inCloud
+    case isUploading
+}
+struct DeleteFileStruct: Codable {
+    var _id: String
+    var token: String
+}
+struct NotiAlertObject {
+    var title: String
+    var message: String
+    var quickPhrase: QuickPhrase
+}
+struct ResponseStruct: Codable {
+    var success: Bool
+    var file: ApiFiles
 }

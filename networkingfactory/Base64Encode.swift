@@ -51,7 +51,7 @@ class Base64Encode {
         case fileId
         case fileName
     }
-    func locateIndex(lookingAt: [FileApiListView], lookingFor: String, lookingType: FileApiChoice) -> Int {
+    func locateIndex(lookingAt: [FileForViewStruct], lookingFor: String, lookingType: FileApiChoice) -> Int {
         var indexForReturn = 0
         switch lookingType {
         case .fileId:
@@ -80,6 +80,22 @@ class Base64Encode {
                 indexForReturn = indeX
                 break
             }
+        }
+        return indexForReturn
+    }
+    func locateIndex(lookingAt: [ApiFolders], lookingFor: ApiFolders) -> Int {
+        var indexForReturn = 0
+        for (indeX, elemenT) in lookingAt.enumerated() where elemenT._id == lookingFor._id {
+            indexForReturn = indeX
+            break
+        }
+        return indexForReturn
+    }
+    func locateIndex(lookingAt: [ApiFolders], lookingFor: String) -> Int {
+        var indexForReturn = 0
+        for (indeX, elemenT) in lookingAt.enumerated() where elemenT._id == lookingFor {
+            indexForReturn = indeX
+            break
         }
         return indexForReturn
     }

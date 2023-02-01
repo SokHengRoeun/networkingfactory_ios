@@ -5,8 +5,6 @@
 //  Created by SokHeng on 30/11/22.
 //
 
-// swiftlint:disable force_cast
-
 import UIKit
 
 class MainTableViewCell: UITableViewCell {
@@ -59,11 +57,31 @@ class MainTableViewCell: UITableViewCell {
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
     }
+    func setToCompleted(fileName: String) {
+        // this is the fastest way to set a processing cell to completed
+        // this function only have ability to mark processing as completed
+        let iconManager = IconManager.shared
+        self.fileNameLabel.text = fileName
+        self.iconImage.image = iconManager.iconFileType(fileName: fileName)
+        self.sizeNameLabel.text = "file downloaded"
+        self.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
+        setAsProgressing(false)
+    }
+    func setAsProgressing(_ setActive: Bool) {
+        // if setActive == true. Set cell as Processing which show processing bar
+        // if setActive == false. Set cell as Completed which hide processing bar
+        self.sizeNameLabel.isHidden = setActive
+        self.downIconImage.isHidden = setActive
+        self.loadingProgressBar.isHidden = !setActive
+        self.spinIndicator.isHidden = !setActive
+        if setActive {
+            self.spinIndicator.startAnimating()
+        }
+    }
 }
 
 extension MainTableViewCell {
     func configureConstrants() {
-        let conManager = ConstraintManager.shared
         iconImage.leftAnchor.constraint(equalTo: contentView.leftAnchor, constant: 10).isActive = true
         iconImage.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10).isActive = true
         fileNameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -80,7 +98,7 @@ extension MainTableViewCell {
         loadingProgressBar.centerYAnchor.constraint(equalTo: sizeNameLabel.centerYAnchor).isActive = true
         loadingProgressBar.leftAnchor.constraint(equalTo: iconImage.rightAnchor, constant: 10).isActive = true
         loadingProgressBar.rightAnchor.constraint(equalTo: downIconImage.leftAnchor, constant: -10).isActive = true
-        spinIndicator = conManager.absoluteFitToThe(child: spinIndicator, parent: downIconImage,
-                                                    padding: 0) as! UIActivityIndicatorView
+        spinIndicator.absoluteFitToThe(parent: downIconImage,
+                                                    padding: 0)
     }
 }

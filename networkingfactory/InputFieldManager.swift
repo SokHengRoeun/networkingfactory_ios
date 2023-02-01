@@ -10,6 +10,7 @@ import UIKit
 
 class InputFieldManager {
     static let shared = InputFieldManager()
+    // Hmmm..
     func fixInputField(original: UITextField) -> UITextField {
         let forReturn = original
         forReturn.autocorrectionType = .no
@@ -18,6 +19,7 @@ class InputFieldManager {
         forReturn.clearButtonMode = .always
         return forReturn
     }
+    /// hightight any UITextField that have empty value.
     func highlightEmpty (allInputfield: [UITextField]) {
         for eachInput in allInputfield {
             if eachInput.text == "" {
@@ -27,7 +29,12 @@ class InputFieldManager {
             }
         }
     }
+    /// check if UITextFields have any value or not.
     func allInputHaveValue(allInputfield: [UITextField]) -> Bool {
+        /**
+         - true = all field have value
+         - false = some or all field is empty
+         */
         var hasValue = true
         for eachInput in allInputfield {
             if eachInput.text == "" {
@@ -39,7 +46,12 @@ class InputFieldManager {
         }
         return hasValue
     }
+    /// check if theString have special character or not.
     func hasSpecialCharacter(theString: String) -> Bool {
+        /**
+         - true = contain
+         - false = not contain
+         */
         let specialChar = ["<", "-", ">", ".", "(", ")", "+", "=", "*", "/", "[", "]", "^", "'",
                            "{", "}", "|", "!", "@", "#", "$", "%", "&", "?", ",", ":", ";", "\"", "\\"]
         var doHaveSpecialChar = false

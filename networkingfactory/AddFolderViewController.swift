@@ -5,14 +5,12 @@
 //  Created by SokHeng on 29/11/22.
 //
 
-// swiftlint:disable force_cast
-
 import UIKit
 import Alamofire
 
 class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
     var requestFromRoot = false
-    var folderEditObject = FolderEditCreateObject(_id: "", name: "", description: "", token: "")
+    var folderEditObject = CreateFolderStruct(_id: "", name: "", description: "", token: "")
     // UI elements :
     var vStackContainer: UIStackView = {
         let myStack = UIStackView()
@@ -70,7 +68,6 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
     var appBackgroundImage: UIImageView = {
         let myImage = UIImageView()
         myImage.contentMode = .scaleAspectFill
-        myImage.image = UIImage(named: "ourAppBackground.jpg")
         return myImage
     }()
     var tapTapRecogn = UITapGestureRecognizer()
@@ -78,7 +75,9 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
     override func viewDidLoad() {
         super.viewDidLoad()
         initStart()
-        view.backgroundColor = UIColor.white
+        view.backgroundColor = traitCollection.userInterfaceStyle == .light ? UIColor.white : UIColor.black
+        appBackgroundImage.image = traitCollection.userInterfaceStyle ==
+            .light ? UIImage(named: "ourAppBackground.jpg") : UIImage(named: "ourAppBackground_black.jpg")
         view.addSubview(mainScrollView)
         mainScrollView.addSubview(vStackContainer)
         vStackContainer.addArrangedSubview(headerIcon)
@@ -89,19 +88,23 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         vStackContainer.addArrangedSubview(summitButton)
         folderNameInputfield.delegate = self
         folderDescriptionInputfield.delegate = self
+        ServerManager.shared.delegate = self
         view.addGestureRecognizer(tapTapRecogn)
         summitButton.addTarget(self, action: #selector(editOrCreateFolderAction), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralContraints()
-        let notificationCenter = NotificationCenter.default
-        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+        let notiCenter = NotificationCenter.default
+        notiCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillHideNotification, object: nil)
-        notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
+        notiCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
     override func viewWillDisappear(_ animated: Bool) {
         appBackgroundImage.isHidden = true
+    }
+    func popAlert(_ alertObj: NotiAlertObject) {
+        self.showAlertBox(title: alertObj.title, message: alertObj.message, buttonPhrase: alertObj.quickPhrase)
     }
     func initStart () {
         title = "Create Folder"
@@ -131,13 +134,13 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
         let inputManager = InputFieldManager.shared
         if allInputHaveValue() {
             if !(inputManager.hasSpecialCharacter(theString: folderNameInputfield.text!)) {
-                let tempApi = FolderEditCreateObject(_id: "\(Int.random(in: 0...9999999999))" +
+                let tempApi = CreateFolderStruct(_id: "\(Int.random(in: 0...9999999999))" +
                                                      "_\(Int.random(in: 0...9999999999))" +
                                                      "_\(folderNameInputfield.text!)",
                                                      name: folderNameInputfield.text!,
                                                      description: folderDescriptionInputfield.text!,
-                                                     token: folderEditObject.token)
-                ServerManager.shared.folderRequestAction(toPerform: "create", apiRequest: tempApi, viewCon: self)
+                                                 token: folderEditObject.token)
+                ServerManager.shared.folderRequestAction(toPerform: "create", apiRequest: tempApi)
             } else {
                 showAlertBox(title: "Invalid character",
                              message: "Your folder information should not contain special character",
@@ -165,11 +168,11 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
                      message: "You are about to delete this folder.",
                      firstButtonAction: nil, firstButtonText: "Cancel",
                      firstButtonStyle: .cancel, secondButtonAction: { _ in
-            let tempApi = FolderEditCreateObject(_id: self.folderEditObject._id,
-                                                 name: self.folderEditObject.name,
-                                                 description: self.folderEditObject.description,
-                                                 token: self.folderEditObject.token)
-            ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self) },
+            let tempApi = CreateFolderStruct(_id: self.folderEditObject._id,
+                                             name: self.folderEditObject.name,
+                                             description: self.folderEditObject.description,
+                                             token: self.folderEditObject.token)
+            ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi) },
                      secondButtonText: "Delete", secondButtonStyle: .destructive)
     }
     func decideToClose(toPerform: String) {
@@ -201,18 +204,29 @@ class AddFolderViewController: UIViewController, UIGestureRecognizerDelegate, UI
     }
 }
 
-extension AddFolderViewController {
+extension AddFolderViewController: ServerManagerDelegate {
+    func sendNotiType(_ notiType: NotiTypeToSend) {
+        if notiType == .dismissNav {
+            dismissNavigation()
+        }
+    }
+    func sendAlertNoti(_ alertNoti: NotiAlertObject) {
+        popAlert(alertNoti)
+    }
+    func sendUserObject(_ userObj: UserDetailStruct) {
+        print("sendUserObject")
+    }
+    func sendFileList(_ fileList: FullFileStruct) {
+        print("sendFileList")
+    }
+    // ===========
     func configureGeneralContraints() {
-        let conManager = ConstraintManager.shared
-        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView, parent: view.safeAreaLayoutGuide,
-                                                     padding: 0) as! UIScrollView
+        mainScrollView.absoluteFitToThe(parent: view.safeAreaLayoutGuide, padding: 0)
         // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        vStackContainer = conManager.centerHorizontally(child: vStackContainer, parent: mainScrollView,
-                                                        padding: 0) as! UIStackView
-        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
-        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
-                                                         padding: 0) as! UIImageView
+        vStackContainer.centerHorizontally(parent: mainScrollView, padding: 0)
+        vStackContainer.configStackView(parent: mainScrollView)
+        appBackgroundImage.absoluteFitToThe(parent: view, padding: 0)
     }
 }

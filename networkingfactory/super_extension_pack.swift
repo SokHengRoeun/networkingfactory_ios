@@ -4,22 +4,88 @@
 // Updated : 24-Oct-2022
 // Updated : 27-Oct-2022 11:16AM(UTC+7)
 // Updated : 15-Nov-2022 10:35AM(UTC+7)
-//
-// swiftlint:disable all
+
+// swiftlint:disable function_parameter_count
 
 import UIKit
 
-struct DeleteFileObject: Codable {
-    var _id: String // swiftlint:disable:this identifier_name
-    var token: String
+enum QuickPhrase {
+    case yes
+    case okay
+    case agree
+    case gotIt
+    case done
+    case close
+    case accept
+    case understand
+    case cancel
+    case delete
+    case remove
+    case continuee
+    case skip
+    case quit
 }
 
 extension UIViewController {
+    private func phraseToString(_ quickPhrase: QuickPhrase) -> String { // swiftlint:disable:this cyclomatic_complexity
+        switch quickPhrase {
+        case .yes:
+            return "Yes"
+        case .okay:
+            return "Okay"
+        case .agree:
+            return "Agree"
+        case .gotIt:
+            return "Got it"
+        case .done:
+            return "Done"
+        case .close:
+            return "Close"
+        case .accept:
+            return "Accept"
+        case .understand:
+            return "Understand"
+        case .cancel:
+            return "Cancel"
+        case .delete:
+            return "Delete"
+        case .remove:
+            return "Remove"
+        case .continuee:
+            return "Continue"
+        case .skip:
+            return "Skip"
+        case .quit:
+            return "Quit"
+        }
+    }
+    func showAlertBox(title: String, message: String, buttonPhrase: QuickPhrase) {
+        let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        let alertActions = UIAlertAction(title: phraseToString(buttonPhrase),
+                                         style: .default, handler: nil)
+        alertBox.addAction(alertActions)
+        DispatchQueue.main.async {
+            self.present(alertBox, animated: true, completion: nil)
+        }
+    }
     func showAlertBox(title: String, message: String, buttonAction: ((UIAlertAction) -> Void)?,
                       buttonText: String, buttonStyle: UIAlertAction.Style) {
         let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let alertActions = UIAlertAction(title: buttonText, style: buttonStyle, handler: buttonAction)
         alertBox.addAction(alertActions)
+        DispatchQueue.main.async {
+            self.present(alertBox, animated: true, completion: nil)
+        }
+    }
+    func showAlertBox(title: String, message: String, firshButtonPhrase: QuickPhrase,
+                      secondButtonAction: ((UIAlertAction) -> Void)?, secondButtonText: QuickPhrase) {
+        let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        let firstAlertAction = UIAlertAction(title: phraseToString(firshButtonPhrase),
+                                             style: .cancel, handler: nil)
+        alertBox.addAction(firstAlertAction)
+        let secondAlertAction = UIAlertAction(title: phraseToString(secondButtonText), style: .destructive,
+                                              handler: secondButtonAction)
+        alertBox.addAction(secondAlertAction)
         DispatchQueue.main.async {
             self.present(alertBox, animated: true, completion: nil)
         }
@@ -30,14 +96,13 @@ extension UIViewController {
                       secondButtonStyle: UIAlertAction.Style) {
         let alertBox = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let firstAlertAction = UIAlertAction(title: firstButtonText, style: firstButtonStyle,
-                                       handler: firstButtonAction)
+                                             handler: firstButtonAction)
         alertBox.addAction(firstAlertAction)
         let secondAlertAction = UIAlertAction(title: secondButtonText, style: secondButtonStyle,
-                                          handler: secondButtonAction)
+                                              handler: secondButtonAction)
         alertBox.addAction(secondAlertAction)
         DispatchQueue.main.async {
-            self.present(alertBox, animated: true, completion: nil
-            )
+            self.present(alertBox, animated: true, completion: nil)
         }
     }
 }

@@ -5,8 +5,6 @@
 //  Created by SokHeng on 23/11/22.
 //
 
-// swiftlint:disable force_cast
-
 import UIKit
 import Alamofire
 
@@ -83,7 +81,6 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     var appBackgroundImage: UIImageView = {
         let myImage = UIImageView()
         myImage.contentMode = .scaleAspectFill
-        myImage.image = UIImage(named: "ourAppBackground2.jpg")
         return myImage
     }()
     // Alert Loading Uploading LMAO
@@ -94,6 +91,8 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         super.viewDidLoad()
         title = "Register"
         view.backgroundColor = UIColor.white
+        appBackgroundImage.image = traitCollection.userInterfaceStyle ==
+            .light ? UIImage(named: "ourAppBackground2.jpg") : UIImage(named: "ourAppBackground2_black.jpg")
         // LoadingIndicator >>>>>>>>>>>>>>>>>>>>>>>>>>>
         loadingIndicator.hidesWhenStopped = true
         loadingIndicator.style = UIActivityIndicatorView.Style.medium
@@ -116,6 +115,7 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         lastnameInputfield.delegate = self
         emailInputfield.delegate = self
         passswordInputfield.delegate = self
+        ServerManager.shared.delegate = self
         view.addGestureRecognizer(tapTapRecogn)
         registerButton.addTarget(self, action: #selector(summitRegisterOnlick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
@@ -126,6 +126,9 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
                                        name: UIResponder.keyboardWillHideNotification, object: nil)
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    func popAlert(_ alertObj: NotiAlertObject) {
+        self.showAlertBox(title: alertObj.title, message: alertObj.message, buttonPhrase: alertObj.quickPhrase)
     }
     @objc func adjustForKeyboard(notification: Notification) {
         guard let keyboardValue =
@@ -144,6 +147,9 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.loadingAlertView.dismiss(animated: true)
         }
+    }
+    override func viewWillDisappear(_ animated: Bool) {
+        appBackgroundImage.isHidden = true
     }
     func isLegitEmail(theString: String) -> Bool {
         var aLegitEmail = false
@@ -182,12 +188,13 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
                               buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
         inputManager.highlightEmpty(allInputfield: inputCollection)
+        // listeningNotification()
     }
     func registerAction() {
         let ourServer = ServerManager.shared
-        let apiRegister = RegisterUserObject(first_name: firstnameInputfield.text!, last_name: lastnameInputfield.text!,
+        let apiRegister = RegisterStruct(first_name: firstnameInputfield.text!, last_name: lastnameInputfield.text!,
                                              email: emailInputfield.text!, password: passswordInputfield.text!)
-        ourServer.registerAccount(apiRegister: apiRegister, viewCon: self)
+        ourServer.registerAccount(apiRegister: apiRegister)
     }
     func dismissNavigation() {
         navigationController?.popViewController(animated: true)
@@ -201,17 +208,30 @@ class RegisterViewController: UIViewController, UIGestureRecognizerDelegate, UIT
     }
 }
 
-extension RegisterViewController {
+extension RegisterViewController: ServerManagerDelegate {
+    func sendNotiType(_ notiType: NotiTypeToSend) {
+        if notiType == .dismissLoading {
+            dismissLoadingAlert()
+        } else if notiType == .dismissNav {
+            dismissNavigation()
+        }
+    }
+    func sendAlertNoti(_ alertNoti: NotiAlertObject) {
+        popAlert(alertNoti)
+    }
+    func sendUserObject(_ userObj: UserDetailStruct) {
+        print("sendAPIFolder")
+    }
+    func sendFileList(_ fileList: FullFileStruct) {
+        print("sendAPIFolder")
+    }
+    // ===========
     func configureGeneralConstraints() {
-        let conManager = ConstraintManager.shared
-        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView,
-                                                     parent: view.safeAreaLayoutGuide,
-                                                     padding: 0) as! UIScrollView
+        mainScrollView.absoluteFitToThe(parent: view.safeAreaLayoutGuide, padding: 0)
         // >>< ><>>> < > > > <  <> < > << <>>> <> > <>  <> <>
-        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
+        vStackContainer.configStackView(parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
-                                                         padding: 0) as! UIImageView
+        appBackgroundImage.absoluteFitToThe(parent: view, padding: 0)
     }
 }

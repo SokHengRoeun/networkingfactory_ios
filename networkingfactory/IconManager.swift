@@ -10,6 +10,7 @@ import UIKit
 
 class IconManager {
     static let shared = IconManager()
+    /// return UIImage base on file extention
     func iconFileType(fileName: String) -> UIImage {
         let lowName = fileName.lowercased()
         if lowName.contains(".png") || lowName.contains(".jpg") || lowName.contains(".jpeg") {

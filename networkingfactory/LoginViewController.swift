@@ -10,7 +10,7 @@ import Alamofire
 
 class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UITextFieldDelegate {
     // UI config
-    var userObj = UserContainerObject(id: "", email: "", first_name: "", last_name: "", token: "")
+    var userObj = UserDetailStruct(id: "", email: "", first_name: "", last_name: "", token: "")
     var userImageIcon: UIImageView = {
         let myImage = UIImageView()
         myImage.translatesAutoresizingMaskIntoConstraints = false
@@ -61,7 +61,6 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     var appBackgroundImage: UIImageView = {
         let myImage = UIImageView()
         myImage.contentMode = .scaleAspectFill
-        myImage.image = UIImage(named: "ourAppBackground.jpg")
         return myImage
     }()
     // Alert Loading Uploading LMAO
@@ -72,9 +71,11 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         super.viewDidLoad()
         if (UserDefaults.standard.string(forKey: "user_token") ?? "").count > 10 {
             startUserScreen(isAuto: true)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.startInitialize()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.startInitialize()
+            }
+        } else {
+            startInitialize()
         }
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
@@ -98,6 +99,8 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     func startInitialize() {
         title = "Login"
         emailInputfield.text = UserDefaults.standard.string(forKey: "login_email")
+        appBackgroundImage.image = traitCollection.userInterfaceStyle ==
+            .light ? UIImage(named: "ourAppBackground.jpg") : UIImage(named: "ourAppBackground_black.jpg")
         switchButton.isOn = true
         let testNavButton = UIBarButtonItem(title: "Register", style: .plain,
                                             target: self, action: #selector(registerOnclick))
@@ -120,10 +123,20 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         view.addGestureRecognizer(tapTapRecogn)
         emailInputfield.delegate = self
         passwordInputfield.delegate = self
+        ServerManager.shared.delegate = self
         summitButton.addTarget(self, action: #selector(loginOnclick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         view.insertSubview(appBackgroundImage, at: 0)
         configureGeneralConstraints()
+    }
+    func notiAction(_ alertObj: NotiAlertObject) {
+        self.showAlertBox(title: alertObj.title, message: alertObj.message, buttonPhrase: alertObj.quickPhrase)
+    }
+    func acceptNewUserObj(_ newUserObj: UserDetailStruct) {
+        userObj = newUserObj
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.startUserScreen(isAuto: false)
+        }
     }
     @objc func registerOnclick() {
         let secondScreen = RegisterViewController()
@@ -136,9 +149,9 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         if inputManager.allInputHaveValue(allInputfield: inputCollection) {
             present(loadingAlertView, animated: true)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                let apiLogin = LoginObject(email: self.emailInputfield.text!.lowercased(),
+                let apiLogin = LoginStruct(email: self.emailInputfield.text!.lowercased(),
                                            password: self.passwordInputfield.text!)
-                ourServer.loggingIn(apiLogin: apiLogin, viewCon: self)
+                ourServer.loggingIn(apiLogin: apiLogin)
             }
         } else {
             self.showAlertBox(title: "Empty Info",
@@ -150,7 +163,7 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     func startUserScreen(isAuto: Bool) {
         if isAuto {
             let userScreen = FolderListViewController()
-            userScreen.userObj = UserContainerObject(id: "", email: "", first_name: "", last_name: "",
+            userScreen.userObj = UserDetailStruct(id: "", email: "", first_name: "", last_name: "",
                                                      token: UserDefaults.standard.string(forKey: "user_token")!)
             navigationController?.pushViewController(userScreen, animated: true)
         } else {
@@ -163,7 +176,7 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
             navigationController?.pushViewController(userScreen, animated: true)
         }
     }
-    func dismissLoadingAlert() {
+    @objc func dismissLoadingAlert() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.loadingAlertView.dismiss(animated: true)
         }
@@ -177,16 +190,27 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     }
 }
 
-// swiftlint:disable force_cast
-extension LoginViewController {
+extension LoginViewController: ServerManagerDelegate {
+    func sendNotiType(_ notiType: NotiTypeToSend) {
+        if notiType == .dismissLoading {
+            dismissLoadingAlert()
+        }
+    }
+    func sendAlertNoti(_ alertNoti: NotiAlertObject) {
+        notiAction(alertNoti)
+    }
+    func sendUserObject(_ userObj: UserDetailStruct) {
+        acceptNewUserObj(userObj)
+    }
+    func sendFileList(_ fileList: FullFileStruct) {
+        print("sendFileList")
+    }
+    // ===========
     func configureGeneralConstraints() {
-        let conManager = ConstraintManager.shared
-        mainScrollView = conManager.absoluteFitToThe(child: mainScrollView, parent: view.safeAreaLayoutGuide,
-                                                     padding: 0) as! UIScrollView
-        vStackContainer = conManager.configStackView(child: vStackContainer, parent: mainScrollView)
+        mainScrollView.absoluteFitToThe(parent: view.safeAreaLayoutGuide, padding: 0)
+        vStackContainer.configStackView(parent: mainScrollView)
         vStackContainer.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor,
                                                constant: -40).isActive = true
-        appBackgroundImage = conManager.absoluteFitToThe(child: appBackgroundImage, parent: view,
-                                                         padding: 0) as! UIImageView
+        appBackgroundImage.absoluteFitToThe(parent: view, padding: 0)
     }
 }

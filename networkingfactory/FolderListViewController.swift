@@ -13,10 +13,10 @@ import Alamofire
 
 class FolderListViewController: UIViewController {
     var gotRespondFromServer = false
-    var userObj = UserContainerObject(id: "", email: "", first_name: "", last_name: "", token: "")
-    var userFullData = FullFolderData()
-    var userFullDataForDisplay = FullFolderData()
-    var filteredFullData = FullFolderData()
+    var userObj = UserDetailStruct(id: "", email: "", first_name: "", last_name: "", token: "")
+    var userFullData = FullFolderStruct()
+    var userFullDataForDisplay = FullFolderStruct()
+    var filteredFullData = FullFolderStruct()
     var isSearching = false
     // UI elements :
     var mainCollectionView: UICollectionView?
@@ -38,35 +38,40 @@ class FolderListViewController: UIViewController {
     }()
     var cannotOpenLabel: UILabel = {
         let myLabel = UILabel()
-        myLabel.text = "Server not respond"
-        myLabel.textColor = UIColor.systemRed
-        myLabel.font = .boldSystemFont(ofSize: 17)
+        myLabel.font = .boldSystemFont(ofSize: 20)
         myLabel.textAlignment = .center
-        myLabel.isHidden = true
         return myLabel
     }()
     var refreshControl = UIRefreshControl()
     var mainSearchController = UISearchController()
-    func serverNotRespondAction() {
+    var addFolderButton = UIBarButtonItem()
+    // MARK: Server Not Respond
+    @objc func serverNotRespondAction() {
         gotRespondFromServer = false
         emptyIconImage.image = UIImage(
-            systemName: "icloud.slash.fill")?.withTintColor(UIColor.red,
+            systemName: "icloud.slash.fill")?.withTintColor(UIColor.systemRed,
                                                             renderingMode: .alwaysOriginal)
-        cannotOpenLabel.isHidden = false
-        showAlertBox(title: "Server not response", message: "Can't connect to the server",
-                          buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
+        cannotOpenLabel.text = "You are offline"; cannotOpenLabel.textColor = UIColor.systemRed
+        addFolderButton.isEnabled = false
+        showAlertBox(title: "Disconnection", message: "Can't connect to the server",
+                     buttonAction: { _ in
+            self.navigationController?.pushViewController(FolderListOfflineViewController(),
+                                                          animated: true)},
+                     buttonText: "Okay", buttonStyle: .default)
+        userFullDataForDisplay = FullFolderStruct()
         vStackContainer.isHidden = false
     }
-    func serverRespondAction() {
+    // MARK: Server Respond
+    @objc func serverRespondAction() {
         gotRespondFromServer = true
         emptyIconImage.image = UIImage(
             systemName: "questionmark.folder.fill")?.withTintColor(UIColor.lightGray,
                                                                    renderingMode: .alwaysOriginal)
-        cannotOpenLabel.isHidden = true
+        cannotOpenLabel.text = "No folder here"; cannotOpenLabel.textColor = UIColor.lightGray
+        addFolderButton.isEnabled = true
     }
     override func viewDidLoad() { // swiftlint:disable:this function_body_length
         super.viewDidLoad()
-        notificationListenSystem()
         AppFileManager.shared.initOnStart()
         getAllFolder()
         let collectionLayout = UICollectionViewFlowLayout()
@@ -83,13 +88,17 @@ class FolderListViewController: UIViewController {
         collectionLayout.collectionView?.backgroundColor = UIColor.orange
         mainCollectionView = UICollectionView(frame: .zero, collectionViewLayout: collectionLayout)
         // UI components inits :
-        view.backgroundColor = UIColor.white
+        view.backgroundColor = traitCollection.userInterfaceStyle == .light ? UIColor.white : UIColor.black
         title = "Your Drive"
-        let signoutButton = UIBarButtonItem(title: "Sign out", style: .plain,
-                                            target: self, action: #selector(signoutOnclick))
-        signoutButton.tintColor = UIColor.red
-        self.navigationItem.setLeftBarButton(signoutButton, animated: true)
-        let addFolderButton = UIBarButtonItem(image: UIImage(systemName: "folder.badge.plus"),
+        let backNavButton = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(weight: .bold)
+        backNavButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
+        backNavButton.setTitle("Sign Out", for: .normal)
+        backNavButton.tintColor = UIColor.systemRed
+        backNavButton.addTarget(self, action: #selector(signoutOnclick), for: .touchUpInside)
+        let navBackButton = UIBarButtonItem(customView: backNavButton)
+        navigationItem.setLeftBarButton(navBackButton, animated: true)
+        addFolderButton = UIBarButtonItem(image: UIImage(systemName: "folder.badge.plus"),
                                               style: .done, target: self, action: #selector(addFolderOnclick))
         let downFolderButton = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.down"),
                                                style: .done, target: self, action: #selector(downFolderOnclick))
@@ -108,8 +117,13 @@ class FolderListViewController: UIViewController {
         vStackContainer.addArrangedSubview(emptyIconImage)
         vStackContainer.addArrangedSubview(cannotOpenLabel)
         refreshControl.addTarget(self, action: #selector(getAllFolder), for: UIControl.Event.valueChanged)
+        initStart()
         configureGeneralConstraint()
     }
+    func initStart() {
+        notificationListenSystem()
+    }
+    /// show signOut allert when call
     @objc func signoutOnclick() {
         showAlertBox(title: "Are you sure?", message: "You are about to sign out from your account",
                      firstButtonAction: nil, firstButtonText: "Cancel", firstButtonStyle: .cancel,
@@ -120,38 +134,47 @@ class FolderListViewController: UIViewController {
         self.navigationController?.popViewController(animated: true)
         UserDefaults.standard.set(":)", forKey: "user_token")
     }
+    /// open addFolder screen when call
     @objc func addFolderOnclick() {
         if gotRespondFromServer {
             let destinationScene = AddFolderViewController()
             destinationScene.folderEditObject.token = userObj.token
             navigationController?.pushViewController(destinationScene, animated: true)
         } else {
-            self.showAlertBox(title: "Connection error", message: "Can't connect to the server",
+            self.showAlertBox(title: "No internet", message: "Can't connect to the server",
                               buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
         }
     }
+    /// open download Screen when call
     @objc func downFolderOnclick() {
         let destinationScene = FileDownloadViewController()
         destinationScene.title = "Downloads"
         navigationController?.pushViewController(destinationScene, animated: true)
-    }
-    func dismissNavigation() {
-        navigationController?.popViewController(animated: true)
     }
     func dismissRefreshing() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.refreshControl.endRefreshing()
         }
     }
+    /// save all data into coreData for offline usage.
+    func saveFolderForOffline() {
+        let coreData = CoreDataManager.shared
+        coreData.deleteAllFolder()
+        coreData.addFolderList(folderlist: userFullData.data)
+        print(">> >> ======== Folder Offline Saved ======== [!]")
+    }
+    /// sort folder base on their name
     func sortFolderList() {
         userFullData.data.sort {
             $0.name.lowercased() < $1.name.lowercased()
         }
     }
+    // MARK: Get All Folder from API
+    /// get all folder object from api
     @objc func getAllFolder() { // swiftlint:disable:this function_body_length
         let apiHeaderToken: HTTPHeaders = ["token": userObj.token]
         print("getAllFolder")
-        AF.request("\(ServerManager.serverIP)get_folder?perpage=2000",
+        AF.request("\(ServerManager.serverIP)get_folder?perpage=2000000",
                    method: .get,
                    headers: apiHeaderToken).response { response in
             // Check if the connection success or fail
@@ -187,13 +210,13 @@ class FolderListViewController: UIViewController {
                                           buttonAction: nil, buttonText: "Okay", buttonStyle: .default)
                     } else {
                         do {
-                            self.userFullData = try JSONDecoder().decode(FullFolderData.self, from: data)
+                            self.userFullData = try JSONDecoder().decode(FullFolderStruct.self, from: data)
                             self.sortFolderList()
                             if self.isSearching == false {
                                 self.userFullDataForDisplay = self.userFullData
                             }
                             self.mainCollectionView!.reloadData()
-                            self.vStackContainer.isHidden = true
+                            self.emptyImageDetector()
                             self.gotRespondFromServer = true
                         } catch {
                             if !(String(data: data, encoding: .utf8)!.contains("{\"count\":0}")) {
@@ -212,12 +235,13 @@ class FolderListViewController: UIViewController {
                             }
                         }
                     }
+                    self.saveFolderForOffline() // save after got from API
                 }
             }
         }
     }
 }
-
+// MARK: Collection View
 extension FolderListViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return userFullDataForDisplay.page.count
@@ -234,7 +258,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         destinationScene.folderEditObject._id = userFullDataForDisplay.data[indexPath.row]._id
         destinationScene.folderEditObject.description = userFullDataForDisplay.data[indexPath.row].description
         destinationScene.folderEditObject.name = userFullDataForDisplay.data[indexPath.row].name
-        destinationScene.folderEditObject.token = userObj.token
+        destinationScene.authToken = userObj.token
         destinationScene.title = userFullDataForDisplay.data[indexPath.row].name
         navigationController?.pushViewController(destinationScene, animated: true)
     }
@@ -243,16 +267,21 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
                         point: CGPoint) -> UIContextMenuConfiguration? {
         configureContextMenu(index: indexPath.row)
     }
+    // MARK: Notification Listener
+    /// add notification observer into this viewController so it have ability to listen to notification
     func notificationListenSystem() {
-        NotificationCenter.default.addObserver(self, selector: #selector(getAllFolder),
-                                               name: Notification.Name(rawValue: "refreshView"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(deleteFolder(_:)),
-                                               name: Notification.Name(rawValue: "delete_folder"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(addFolder),
-                                               name: Notification.Name(rawValue: "create_folder"), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(updateFolder),
-                                               name: Notification.Name(rawValue: "update_folder"), object: nil)
+        let notiCenter = NotificationCenter.default
+        notiCenter.addObserver(self, selector: #selector(getAllFolder),
+                               name: Notification.Name(rawValue: "refreshView"), object: nil)
+        notiCenter.addObserver(self, selector: #selector(deleteFolder(_:)),
+                               name: Notification.Name(rawValue: "delete_folder"), object: nil)
+        notiCenter.addObserver(self, selector: #selector(addFolder),
+                               name: Notification.Name(rawValue: "create_folder"), object: nil)
+        notiCenter.addObserver(self, selector: #selector(updateFolder),
+                               name: Notification.Name(rawValue: "update_folder"), object: nil)
     }
+    // MARK: Notification Actions
+    /// add a folder into collectionView. for notification only.
     @objc func addFolder(_ notification: NSNotification) {
         if userFullData.page.count == 0 && userFullData.data.count > 0 {
             userFullData.data = [ApiFolders]()
@@ -272,8 +301,10 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             mainCollectionView!.insertItems(at: [theIndexPath])
         }
         mainCollectionView?.reloadData()
-        vStackContainer.isHidden = true
+        saveFolderForOffline() // save once user save add new folder.
+        emptyImageDetector() // check if there is no folder, show empty Icon
     }
+    /// update folder name or discription in collectionView. for notification only.
     @objc func updateFolder(_ notification: NSNotification) {
         let tempApiObject = notification.object as! ApiFolders
         for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
@@ -283,7 +314,9 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             break
         }
         sortFolderList()
+        saveFolderForOffline() // save once user update any folder
     }
+    /// remove a folder from collectionView. for notification only.
     @objc func deleteFolder(_ notification: NSNotification) {
         let tempApiObject = notification.object as! ApiFolders
         for (indexx, elementt) in userFullData.data.enumerated() where elementt._id == tempApiObject._id {
@@ -293,15 +326,14 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             mainCollectionView!.deleteItems(at: [IndexPath(row: indexx, section: 0)])
             break
         }
-        if userFullData.page.count <= 1 {
-            vStackContainer.isHidden = false
-        }
+        saveFolderForOffline() // save once user delete any folder
     }
-    func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
-        let tempApi = FolderEditCreateObject(_id: userFullDataForDisplay.data[index]._id,
-                                             name: userFullDataForDisplay.data[index].name,
-                                             description: userFullDataForDisplay.data[index].description,
-                                             token: userObj.token)
+    // MARK: Context Menu (TableView)
+    @objc func configureContextMenu(index: Int) -> UIContextMenuConfiguration {
+        let tempApi = CreateFolderStruct(_id: userFullDataForDisplay.data[index]._id,
+                                         name: userFullDataForDisplay.data[index].name,
+                                         description: userFullDataForDisplay.data[index].description,
+                                         token: userObj.token)
         let context = UIContextMenuConfiguration(identifier: nil,
                                                  previewProvider: nil) { (action) -> UIMenu? in
             debugPrint("> \(action)")
@@ -314,7 +346,7 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
             let delete = UIAction(title: "Delete", image: UIImage(systemName: "trash"),
                                   identifier: nil, discoverabilityTitle: nil,
                                   attributes: .destructive, state: .off) { (_) in
-                ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi, viewCon: self)
+                ServerManager.shared.folderRequestAction(toPerform: "delete", apiRequest: tempApi)
                 if self.userFullDataForDisplay.page.count <= 1 {
                     self.vStackContainer.isHidden = false
                 }
@@ -324,20 +356,19 @@ extension FolderListViewController: UICollectionViewDataSource, UICollectionView
         }
         return context
     }
+    // MARK: Constraint
+    /// Automaticall do contraint for this screen.
     func configureGeneralConstraint() {
-        let conManager = ConstraintManager.shared
-        mainCollectionView! = conManager.fitTopBottom(child: mainCollectionView!, parent: view.safeAreaLayoutGuide,
-                                                      padding: 0) as! UICollectionView
-        mainCollectionView! = conManager.fitLeftRight(child: mainCollectionView!,
-                                                      parent: view.safeAreaLayoutGuide, padding: 7) as! UICollectionView
-        vStackContainer = conManager.absoluteCenter(child: vStackContainer,
-                                                    parent: view.safeAreaLayoutGuide) as! UIStackView
-        vStackContainer = conManager.fitLeftRight(child: vStackContainer, parent: view.safeAreaLayoutGuide,
-                                                  padding: 0) as! UIStackView
+        mainCollectionView!.fitTopBottom(parent: view.safeAreaLayoutGuide, padding: 0)
+        mainCollectionView!.fitLeftRight(parent: view.safeAreaLayoutGuide, padding: 7)
+        vStackContainer.absoluteCenter(parent: view.safeAreaLayoutGuide)
+        vStackContainer.fitLeftRight(parent: view.safeAreaLayoutGuide,
+                                     padding: 0)
     }
 }
 
 extension FolderListViewController: UISearchResultsUpdating {
+    // MARK: Searching System
     func updateSearchResults(for searchController: UISearchController) {
         if searchController.searchBar.text!.isEmpty {
             isSearching = false
@@ -351,15 +382,19 @@ extension FolderListViewController: UISearchResultsUpdating {
             userFullDataForDisplay = filteredFullData
             userFullDataForDisplay.page.count = userFullDataForDisplay.data.count
         }
-        if userFullDataForDisplay.page.count > 0 {
-            vStackContainer.isHidden = true
-        } else {
-            vStackContainer.isHidden = false
-        }
+        emptyImageDetector()
         // swiftlint:disable legacy_constructor
         let range = NSMakeRange(0, self.mainCollectionView!.numberOfSections)
         let sections = NSIndexSet(indexesIn: range)
         self.mainCollectionView!.reloadSections(sections as IndexSet)
         // mainCollectionView?.reloadData()
+    }
+    // MARK: Empty Icon Detector
+    @objc func emptyImageDetector() {
+        if userFullDataForDisplay.data.count > 0 {
+            vStackContainer.isHidden = true
+        } else {
+            vStackContainer.isHidden = false
+        }
     }
 }
