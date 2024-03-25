@@ -26,12 +26,22 @@ protocol ServerManagerDelegate{
 
 class ServerManager {
     static let shared = ServerManager()
-    static let serverIP =  "http://192.168.12.167:8000/" // <<<< change Server address here. 12.239 | 12.244
+    static let serverIP =  "http://192.168.12.168:8000/" // <<<< change Server address here. 12.167 | 12.168
     var delegate: ServerManagerDelegate?
     private func sendNotification(apiFolder: ApiFolders, toPerform: String) {
         NotificationCenter.default.post(Notification(
             name: Notification.Name(rawValue: "\(toPerform)_folder"),
             object: apiFolder))
+    }
+    private func sendAlertNotification(notiObj: NotiAlertObject) {
+        NotificationCenter.default.post(Notification(
+            name: Notification.Name(rawValue: "gotAlertMessage"),
+            object: notiObj))
+    }
+    private func sendLoginSuccess(newUser: UserDetailStruct) {
+        NotificationCenter.default.post(Notification(
+            name: Notification.Name(rawValue: "loginSuccess"),
+            object: newUser))
     }
     func loggingIn (apiLogin: LoginStruct) {
         AF.request("\(ServerManager.serverIP)login", method: .post, parameters: apiLogin,
@@ -42,9 +52,10 @@ class ServerManager {
                 self.delegate?.sendNotiType(.dismissLoading)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     let b64 = Base64Encode.shared
-                    self.delegate?.sendAlertNoti(NotiAlertObject(title: "Login Error",
-                                                                 message: b64.chopFirstSuffix(error.localizedDescription),
-                                                                 quickPhrase: .okay))
+                    let notiObj = NotiAlertObject(title: "Login Error",
+                                                  message: b64.chopFirstSuffix(error.localizedDescription),
+                                                  quickPhrase: .okay)
+                    self.sendAlertNotification(notiObj: notiObj)
                 }
             case .success(let data):
                 print(data!)
@@ -55,25 +66,24 @@ class ServerManager {
                 if json!.contains("\"error\"") {
                     var errorObj = ErrorObject()
                     errorObj = try! JSONDecoder().decode(ErrorObject.self, from: data)
-                    self.delegate?.sendNotiType(.dismissLoading)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.delegate?.sendAlertNoti(NotiAlertObject(title: "Login error",
-                                                                     message: errorObj.error, quickPhrase: .okay))
+                        let notiObj = NotiAlertObject(title: "Login error",
+                                                      message: errorObj.error, quickPhrase: .okay)
+                        self.sendAlertNotification(notiObj: notiObj)
                     }
                 } else {
                     if response.error != nil {
-                        self.delegate?.sendNotiType(.dismissLoading)
+                        // do nothing
                     } else {
                         do {
                             let newUserObj = try JSONDecoder().decode(UserDetailStruct.self, from: data)
-                            self.delegate?.sendUserObject(newUserObj)
-                            self.delegate?.sendNotiType(.dismissLoading)
+                            self.sendLoginSuccess(newUser: newUserObj)
                         } catch {
-                            self.delegate?.sendNotiType(.dismissLoading)
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                self.delegate?.sendAlertNoti(NotiAlertObject(title: "Data error",
-                                                                             message: "User's data didn't loaded",
-                                                                             quickPhrase: .okay))
+                                let notiObj = NotiAlertObject(title: "Data error",
+                                                              message: "User's data didn't loaded",
+                                                              quickPhrase: .okay)
+                                self.sendAlertNotification(notiObj: notiObj)
                             }
                         }
                     }
@@ -92,9 +102,10 @@ class ServerManager {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     let b64 = Base64Encode.shared
                     self.delegate?.sendNotiType(.dismissLoading)
-                    self.delegate?.sendAlertNoti(NotiAlertObject(title: "Login Error",
-                                                                 message: b64.chopFirstSuffix(error.localizedDescription),
-                                                                 quickPhrase: .okay))
+                    let notiObj = NotiAlertObject(title: "Login Error",
+                                                  message: b64.chopFirstSuffix(error.localizedDescription),
+                                                  quickPhrase: .okay)
+                    self.delegate?.sendAlertNoti(notiObj)
                 }
             case .success(let data):
                 print(data!)
@@ -111,8 +122,9 @@ class ServerManager {
                     }
                     self.delegate?.sendNotiType(.dismissLoading)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        self.delegate?.sendAlertNoti(NotiAlertObject(title: "Can't register",
-                                                                     message: errorObj.error, quickPhrase: .okay))
+                        let notiObj = NotiAlertObject(title: "Can't register",
+                                                      message: errorObj.error, quickPhrase: .okay)
+                        self.delegate?.sendAlertNoti(notiObj)
                     }
                 } else {
                     if response.error != nil {
@@ -123,9 +135,10 @@ class ServerManager {
                             self.delegate?.sendNotiType(.dismissNav)
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            self.delegate?.sendAlertNoti(NotiAlertObject(title: "Congratulations",
-                                                                         message: "Your account had been created",
-                                                                         quickPhrase: .okay))
+                            let notiObj = NotiAlertObject(title: "Congratulations",
+                                                          message: "Your account had been created",
+                                                          quickPhrase: .okay)
+                            self.delegate?.sendAlertNoti(notiObj)
                         }
                     }
                 }

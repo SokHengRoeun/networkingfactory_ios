@@ -56,7 +56,7 @@ class FolderListViewController: UIViewController {
         showAlertBox(title: "Disconnection", message: "Can't connect to the server",
                      buttonAction: { _ in
             self.navigationController?.pushViewController(FolderListOfflineViewController(),
-                                                          animated: true)},
+                                                          animated: false)},
                      buttonText: "Okay", buttonStyle: .default)
         userFullDataForDisplay = FullFolderStruct()
         vStackContainer.isHidden = false

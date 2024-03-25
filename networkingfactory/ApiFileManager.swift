@@ -16,7 +16,8 @@ class ApiFileManager {
         var tempContainer = [FileForViewStruct]()
         for eachElement in apiDataList {
             var tempFile = FileForViewStruct(fileID: eachElement._id, fileName: eachElement.name,
-                                             fileStatus: .inCloud, uploadDate: eachElement.createdAt)
+                                             fileStatus: .inCloud, uploadDate: eachElement.createdAt,
+                                             progressValue: 0)
             if fileManager.hasFile(fileName: eachElement.name) {
                 tempFile.fileStatus = .downloaded
             }
@@ -28,7 +29,7 @@ class ApiFileManager {
     func fileDataToView(apiData: ApiFiles) -> FileForViewStruct {
         let fileManager = AppFileManager.shared
         var tempFile = FileForViewStruct(fileID: apiData._id, fileName: apiData.name,
-                                       fileStatus: .inCloud, uploadDate: apiData.createdAt)
+                                       fileStatus: .inCloud, uploadDate: apiData.createdAt, progressValue: 0)
         if fileManager.hasFile(fileName: apiData.name) {
             tempFile.fileStatus = .downloaded
         }

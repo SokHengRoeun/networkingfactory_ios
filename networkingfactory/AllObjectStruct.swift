@@ -76,7 +76,9 @@ struct FileForViewStruct {
     var fileStatus: FileStatusEnum
     var downRequest: DownloadRequest?
     var upRequest: UploadRequest?
+    var fileUrl: String?
     var uploadDate: String
+    var progressValue: Float
 }
 enum FileStatusEnum {
     case downloaded

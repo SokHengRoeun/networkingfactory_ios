@@ -76,10 +76,6 @@ class FileListOfflineViewController: FileListViewController {
         }
         tableView.deselectRow(at: indexPath, animated: true)
     }
-    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath
-    ) -> UITableViewCell.EditingStyle {
-        return .none
-    }
     @objc override func requestMoreFiles() {
         let coreData = CoreDataManager.shared
         let tempFiles = coreData.getAllFiles(folderId: folderEditObject._id)

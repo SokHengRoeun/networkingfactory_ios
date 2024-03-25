@@ -112,14 +112,17 @@ class AppFileManager {
         for eachChar in unsafeChar {
             fileName = fileName.replacingOccurrences(of: eachChar, with: "")
         }
-        deleteFile(fileName: fileName)
-        do {
-            try FileManager.default.createFile(atPath: fileDirectoryURL.appending(path: "download/\(fileName)").path(),
-                                               contents: Data(contentsOf: fileUrl))
-        } catch {
-            print(">> can't create \(fileUrl) since it already existed")
+        if hasFile(fileName: fileName) {
+            return fileDirectoryURL.appending(path: "download/\(fileName)")
+        } else {
+            do {
+                try FileManager.default.createFile(atPath: fileDirectoryURL.appending(path: "download/\(fileName)").path(),
+                                                   contents: Data(contentsOf: fileUrl))
+            } catch {
+                print(">> can't create \(fileUrl) since it already existed")
+            }
+            return fileDirectoryURL.appending(path: "download/\(fileName)")
         }
-        return fileDirectoryURL.appending(path: "download/\(fileName)")
     }
     /// clean Junk 
     func cleanJunkFile() {

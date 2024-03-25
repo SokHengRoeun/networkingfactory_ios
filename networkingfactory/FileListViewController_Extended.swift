@@ -54,9 +54,11 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
     /// this function is for UISearchResultsUpdating(delegate). should not be call or use in another field.
     func updateSearchResults(for searchController: UISearchController) {
         if searchController.searchBar.text!.isEmpty {
+            filesOnDisplay = fullFilesData
             isSearching = false
             uploadButton.isHidden = false
         } else {
+            filterFileOnDisplay()
             isSearching = true
             uploadButton.isHidden = true
         }
@@ -66,6 +68,7 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
     // MARK: Reload TableView
     /// reload mainTableView with or without animation.
     func reloadTableView(withAnimation: Bool) {
+        filterFileOnDisplay()
         if withAnimation {
             let range = NSMakeRange(0, self.mainTableView.numberOfSections) // swiftlint:disable:this legacy_constructor
             let sections = NSIndexSet(indexesIn: range)
@@ -80,9 +83,6 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
         /**
          note: use this function after sorting, searching, deleting and appending function
          */
-        let filesOnDisplay = isSearching ? fullFilesData.filter { product in
-            return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-        }: fullFilesData
         if filesOnDisplay.count > 0 {
             vStackContainer.isHidden = true
         } else {
@@ -92,9 +92,6 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
     // MARK: Reach The Last Cell
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if isSearching == false {
-            let filesOnDisplay = isSearching ? fullFilesData.filter { product in
-                return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-            }: fullFilesData
             if fullFilesData.count >= estimateFiles {
                 if indexPath.row == filesOnDisplay.count - 1 {
                     requestMoreFiles()
@@ -104,6 +101,7 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
         }
     }
     // MARK: Refresh Controll
+    /// refresh the page when user pull down-refresh.
     @objc func refreshPage() {
         if !haveProcessing() && !isSearching {
             ServerManager.shared.getAllFilesAPI(folderId: folderEditObject._id, apiToken: authToken,
@@ -120,34 +118,86 @@ extension FileListViewController: UISearchResultsUpdating, ServerManagerDelegate
         vStackContainer.fitLeftRight(parent: view.safeAreaLayoutGuide, padding: 0)
     }
     // MARK: Uploading Action
+    // swiftlint:disable force_try
     /// send file URL to upload in ServerManager
-    func uploadFileAction(uploadID: String, fileUrl: URL) {
-        if let firstIndex = fullFilesData.firstIndex(where: { $0.fileID == uploadID }) {
-            let fileM = AppFileManager.shared
-            let serverM =  ServerManager.shared
-            fullFilesData[firstIndex].upRequest = serverM.uploadFile(fileURL: fileM.saveFileForUpload(fileUrl: fileUrl),
-                                                                uploadID: uploadID, apiToken: authToken,
-                                                                folderId: folderEditObject._id)
-            fullFilesData[firstIndex].upRequest?.responseData { responded in
-                switch responded.result {
-                case .success(let data):
-                    do {
-                        let apiManager = ApiFileManager.shared
-                        let uploadedFile = try JSONDecoder().decode(ResponseStruct.self, from: data)
-                        self.fullFilesData[firstIndex] =  apiManager.fileDataToView(apiData: uploadedFile.file)
-                        self.fullFilesData[firstIndex].fileStatus = .downloaded
-                        self.reloadTableView(withAnimation: false)
-                    } catch {
-                        self.showAlertBox(title: "Can't upload", message: String(data: data, encoding: .utf8)!,
+    func uploadFileAction() {
+        let serverM = ServerManager.shared
+        if let fIndex = fullFilesData.firstIndex(where: {$0.fileID == uploadWaitList[0].fileID}) {
+            if fullFilesData[fIndex].upRequest == nil {
+                let uploadObj = uploadWaitList[0]
+                let fileManager = AppFileManager.shared
+                fullFilesData[fIndex].upRequest = serverM.uploadFile(
+                    fileURL: fileManager.saveFileForUpload(fileUrl: try! uploadObj.fileUrl!.asURL()),
+                    uploadID: uploadObj.fileID,
+                    apiToken: authToken,
+                    folderId: folderEditObject._id)
+                fullFilesData[fIndex].upRequest?.responseData { responded in
+                    switch responded.result {
+                    case .success(let data):
+                        do {
+                            if let finalIndex = self.fullFilesData.firstIndex(
+                                where: {$0.fileID == uploadObj.fileID}) {
+                                // ===================
+                                let apiManager = ApiFileManager.shared
+                                let uploadedFile = try JSONDecoder().decode(ResponseStruct.self, from: data)
+                                self.fullFilesData[finalIndex] = apiManager.fileDataToView(apiData: uploadedFile.file)
+                                self.fullFilesData[finalIndex].fileUrl = nil
+                                self.fullFilesData[finalIndex].fileStatus = .downloaded
+                                self.uploadWaitList.remove(at: 0)
+                                if self.uploadWaitList.count > 0 {
+                                    self.uploadFileAction()
+                                }
+                                self.reloadTableView(withAnimation: false)
+                            }
+                        } catch {
+                            self.showAlertBox(title: "Can't upload", message: String(data: data, encoding: .utf8)!,
+                                              buttonPhrase: .okay)
+                        }
+                    case .failure(let error):
+                        self.showAlertBox(title: "Can't upload", message: error.localizedDescription,
                                           buttonPhrase: .okay)
                     }
-                case .failure(let error):
-                    self.showAlertBox(title: "Can't upload", message: error.localizedDescription,
-                                      buttonPhrase: .okay)
                 }
+            } else {
+                print(">>> Uploading is on its way!")
             }
         }
-        reloadTableView(withAnimation: false)
+        // reloadTableView(withAnimation: false)
         emptyImageResolver()
+    }
+    // MARK: Quene Downloading
+    func linearDownloadSystem() {
+        let serverM = ServerManager.shared
+        if let firstIndex = fullFilesData.firstIndex(where: {$0.fileID == downloadWaitList[0].fileID}) {
+            if fullFilesData[firstIndex].downRequest == nil {
+                fullFilesData[firstIndex].downRequest = serverM.downloadFile(fileId: downloadWaitList[0].fileID,
+                                                                             fileName: downloadWaitList[0].fileName,
+                                                                             authToken: authToken)
+                fullFilesData[firstIndex].downRequest?.responseData { responded in
+                    switch responded.result {
+                    case .success(let success):
+                        let fulldata = self.fullFilesData
+                        if let finalIndex = fulldata.firstIndex(where: {$0.fileID == self.downloadWaitList[0].fileID}) {
+                            _ = AppFileManager.shared.storeFile(fileName: self.downloadWaitList[0].fileName,
+                                                                fileData: success)
+                            self.fullFilesData[finalIndex].fileStatus = .downloaded
+                            self.reloadTableView(withAnimation: false)
+                            self.downloadWaitList.remove(at: 0)
+                            if self.downloadWaitList.count > 0 {
+                                self.linearDownloadSystem()
+                                self.reloadTableView(withAnimation: false)
+                            } else {
+                                print("*\n>>> Linear Download System have stoped\n*")
+                            }
+                        }
+                    case .failure(let error):
+                        self.showAlertBox(title: "Can't download", message: error.localizedDescription,
+                                          buttonPhrase: .okay)
+                    }
+                }
+            } else {
+                print("n>>> Downloading is on its way!")
+            }
+        }
     }
 }

@@ -16,7 +16,11 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
     var folderEditObject = ApiFolders(_id: "", name: "", description: "", createdAt: "", updatedAt: "")
     var authToken = ""
     var fullFilesData = [FileForViewStruct]()
+    var filesOnDisplay = [FileForViewStruct]()
     var estimateFiles = 20
+    // ============================
+    var downloadWaitList = [FileForViewStruct]()
+    var uploadWaitList = [FileForViewStruct]()
     // ============================
     var mainTableView = UITableView()
     var uploadButtonConfig = UIButton.Configuration.tinted()
@@ -133,6 +137,7 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
             let convertedData = apiManager.fileDataToViewList(apiDataList: fileList.data)
             if fullFilesData.count <= 0 {
                 fullFilesData = convertedData
+                filesOnDisplay = fullFilesData
                 reloadTableView(withAnimation: true)
             } else {
                 for eachEle in convertedData {
@@ -166,16 +171,10 @@ class FileListViewController: UIViewController, UINavigationControllerDelegate {
 // MARK: Table View Functions
 extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        let amountOf = fullFilesData.filter { product in
-            return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-        }.count
-        return isSearching ? amountOf : fullFilesData.count
+        return filesOnDisplay.count
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = mainTableView.dequeueReusableCell(withIdentifier: "MainCell") as? MainTableViewCell
-        let filesOnDisplay = isSearching ? fullFilesData.filter { product in
-            return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-        }: fullFilesData
         let iconManager = IconManager.shared
         cell!.fileNameLabel.text = filesOnDisplay[indexPath.row].fileName
         cell!.iconImage.image = iconManager.iconFileType(fileName: filesOnDisplay[indexPath.row].fileName)
@@ -187,6 +186,7 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
         case .isDownloading:
             cell!.setAsProgressing(true)
             cell!.loadingProgressBar.tintColor = UIColor.green
+            cell?.loadingProgressBar.progress = filesOnDisplay[indexPath.row].progressValue
             filesOnDisplay[indexPath.row].downRequest?.downloadProgress { progressVal in
                 cell?.loadingProgressBar.progress = Float(progressVal.fractionCompleted)
             }
@@ -199,6 +199,7 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
             cell!.iconImage.image = UIImage(systemName: "icloud.and.arrow.up")
             cell!.fileNameLabel.text = "Uploading a file ..."
             cell!.loadingProgressBar.tintColor = UIColor.link
+            cell?.loadingProgressBar.progress = filesOnDisplay[indexPath.row].progressValue
             filesOnDisplay[indexPath.row].upRequest?.uploadProgress { progressVal in
                 cell?.loadingProgressBar.progress = Float(progressVal.fractionCompleted)
             }
@@ -207,38 +208,22 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let cell = tableView.cellForRow(at: indexPath) as? MainTableViewCell
-        let filesOnDisplay = isSearching ? fullFilesData.filter { product in
-            return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-        }: fullFilesData
-        let selectDisplay = filesOnDisplay[indexPath.row]
-        switch selectDisplay.fileStatus {
+        let selectObj = filesOnDisplay[indexPath.row]
+        switch selectObj.fileStatus {
         case .downloaded:
             openPreviewScreen(fileName: filesOnDisplay[indexPath.row].fileName)
             cell!.downIconImage.image = UIImage(systemName: "checkmark.seal.fill")
         case .isDownloading:
             print("> Try to cancel download?")
         case .inCloud:
-            if AppFileManager.shared.hasFile(fileName: selectDisplay.fileName) {
-                cell?.setToCompleted(fileName: selectDisplay.fileName)
+            if AppFileManager.shared.hasFile(fileName: selectObj.fileName) {
+                cell?.setToCompleted(fileName: selectObj.fileName)
             } else {
-                let serverM = ServerManager.shared
-                if let fistIndex = fullFilesData.firstIndex(where: { $0.fileID == selectDisplay.fileID }) {
-                    cell?.setAsProgressing(true)
-                    fullFilesData[fistIndex].fileStatus = .isDownloading
-                    fullFilesData[fistIndex].downRequest = serverM.downloadFile(fileId: selectDisplay.fileID,
-                                                                                fileName: selectDisplay.fileName,
-                                                                                authToken: authToken)
-                    fullFilesData[fistIndex].downRequest?.responseData { responded in
-                        switch responded.result {
-                        case .success(let success):
-                            _ = AppFileManager.shared.storeFile(fileName: selectDisplay.fileName, fileData: success)
-                            self.fullFilesData[fistIndex].fileStatus = .downloaded
-                            self.reloadTableView(withAnimation: false)
-                        case .failure(let error):
-                            self.showAlertBox(title: "Can't download", message: error.localizedDescription,
-                                              buttonPhrase: .okay)
-                        }
-                    }
+                cell?.setAsProgressing(true)
+                if let firstIndex = fullFilesData.firstIndex(where: { $0.fileID == selectObj.fileID }) {
+                    fullFilesData[firstIndex].fileStatus = .isDownloading
+                    downloadWaitList.append(fullFilesData[firstIndex])
+                    linearDownloadSystem()
                     self.reloadTableView(withAnimation: false)
                 }
             }
@@ -250,15 +235,13 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle,
                    forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let filesOnDisplay = isSearching ? fullFilesData.filter { product in
-                return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
-            }: fullFilesData
             let seletedFile = filesOnDisplay[indexPath.row]
             if seletedFile.fileStatus == .inCloud || seletedFile.fileStatus == .downloaded {
                 ServerManager.shared.deleteFile(fileId: filesOnDisplay[indexPath.row].fileID,
                                                 authToken: self.authToken)
                 if let firstFullIndex = fullFilesData.firstIndex(where: { $0.fileID == seletedFile.fileID}) {
                     fullFilesData.remove(at: firstFullIndex)
+                    filterFileOnDisplay()
                 }
                 mainTableView.deleteRows(at: [indexPath], with: .fade)
             } else {
@@ -269,8 +252,14 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
     }
     func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath)
     -> UITableViewCell.EditingStyle {
-        if haveProcessing() {
-            return .none
+        var fileStat = FileStatusEnum.inCloud
+        if filesOnDisplay.count > 0 {
+            fileStat = filesOnDisplay[indexPath.item].fileStatus
+            if fileStat == .inCloud || fileStat == .downloaded {
+                return .delete
+            } else {
+                return .none
+            }
         } else {
             return .delete
         }
@@ -338,6 +327,17 @@ extension FileListViewController: UITableViewDelegate, UITableViewDataSource {
         }
         return tempReturn
     }
+    // MARK: Filter FilesOnDisplay
+    /// filter filesOnDisplay depending on isSearching
+    func filterFileOnDisplay() {
+        if isSearching {
+            filesOnDisplay = fullFilesData.filter { product in
+                return product.fileName.lowercased().contains(mainSearchController.searchBar.text!.lowercased())
+            }
+        } else {
+            filesOnDisplay = fullFilesData
+        }
+    }
 }
 
 extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControllerDelegate {
@@ -345,9 +345,13 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
         refreshControl.removeFromSuperview()
         let tempUploadID = "upload_\(UUID().uuidString)"
-        insertUploadingCell(uploadID: tempUploadID, fileName: url.lastPathComponent, fileUrl: url)
-        reloadTableView(withAnimation: true)
-        uploadFileAction(uploadID: tempUploadID, fileUrl: url)
+        insertUploadingCell(uploadID: tempUploadID, fileName: url.lastPathComponent)
+        if let firstIndex = fullFilesData.firstIndex(where: { $0.fileID == tempUploadID }) {
+            fullFilesData[firstIndex].fileUrl = url.absoluteString
+            uploadWaitList.append(fullFilesData[firstIndex])
+            uploadFileAction()
+            reloadTableView(withAnimation: true)
+        }
         controller.dismiss(animated: true)
     }
     // MARK: Image Picker
@@ -361,17 +365,20 @@ extension FileListViewController: UIDocumentPickerDelegate, UIImagePickerControl
         } else {
             pickedMediaUrl = info[.imageURL] as? URL
         }
-        insertUploadingCell(uploadID: tempUploadID, fileName: pickedMediaUrl!.lastPathComponent,
-                            fileUrl: pickedMediaUrl!)
-        reloadTableView(withAnimation: true)
-        uploadFileAction(uploadID: tempUploadID, fileUrl: pickedMediaUrl!)
+        insertUploadingCell(uploadID: tempUploadID, fileName: pickedMediaUrl!.lastPathComponent)
+        if let firstIndex = fullFilesData.firstIndex(where: { $0.fileID == tempUploadID }) {
+            fullFilesData[firstIndex].fileUrl = pickedMediaUrl?.absoluteString
+            uploadWaitList.append(fullFilesData[firstIndex])
+            uploadFileAction()
+            reloadTableView(withAnimation: true)
+        }
         picker.dismiss(animated: true)
     }
     /// add uploading cell into mainTableView
-    func insertUploadingCell(uploadID: String, fileName: String, fileUrl: URL) {
+    func insertUploadingCell(uploadID: String, fileName: String) {
         let iso8601String = ISO8601DateFormatter().string(from: Date())
-        fullFilesData.append(FileForViewStruct(fileID: uploadID, fileName: fileName,
-                                               fileStatus: .isUploading, uploadDate: iso8601String))
+        fullFilesData.append(FileForViewStruct(fileID: uploadID, fileName: fileName, fileStatus: .isUploading,
+                                               uploadDate: iso8601String, progressValue: 0))
         reloadTableView(withAnimation: false)
     }
 }

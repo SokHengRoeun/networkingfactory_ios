@@ -82,6 +82,15 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
                                        name: UIResponder.keyboardWillHideNotification, object: nil)
         notificationCenter.addObserver(self, selector: #selector(adjustForKeyboard),
                                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        notificationCenter.addObserver(self, selector: #selector(gotAlertNoti(_:)),
+                                       name: Notification.Name(rawValue: "gotAlertMessage"), object: nil)
+        notificationCenter.addObserver(self, selector: #selector(acceptNewUserObj(_:)),
+                                       name: Notification.Name(rawValue: "loginSuccess"), object: nil)
+    }
+    @objc func gotAlertNoti(_ notification: NSNotification) {
+        let tempAlertObj = notification.object as? NotiAlertObject
+        notiAction(tempAlertObj!)
+        dismissLoadingAlert()
     }
     @objc func adjustForKeyboard(notification: Notification) {
         guard let keyboardValue =
@@ -123,7 +132,6 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         view.addGestureRecognizer(tapTapRecogn)
         emailInputfield.delegate = self
         passwordInputfield.delegate = self
-        ServerManager.shared.delegate = self
         summitButton.addTarget(self, action: #selector(loginOnclick), for: .touchUpInside)
         tapTapRecogn.addTarget(self, action: #selector(taptapAction))
         view.insertSubview(appBackgroundImage, at: 0)
@@ -132,8 +140,8 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
     func notiAction(_ alertObj: NotiAlertObject) {
         self.showAlertBox(title: alertObj.title, message: alertObj.message, buttonPhrase: alertObj.quickPhrase)
     }
-    func acceptNewUserObj(_ newUserObj: UserDetailStruct) {
-        userObj = newUserObj
+    @objc func acceptNewUserObj(_ notification: NSNotification) {
+        userObj = (notification.object as? UserDetailStruct)!
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             self.startUserScreen(isAuto: false)
         }
@@ -161,6 +169,7 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         inputManager.highlightEmpty(allInputfield: inputCollection)
     }
     func startUserScreen(isAuto: Bool) {
+        dismissLoadingAlert()
         if isAuto {
             let userScreen = FolderListViewController()
             userScreen.userObj = UserDetailStruct(id: "", email: "", first_name: "", last_name: "",
@@ -188,24 +197,6 @@ class LoginViewController: UIViewController, UIGestureRecognizerDelegate, UIText
         self.view.endEditing(true)
         return false
     }
-}
-
-extension LoginViewController: ServerManagerDelegate {
-    func sendNotiType(_ notiType: NotiTypeToSend) {
-        if notiType == .dismissLoading {
-            dismissLoadingAlert()
-        }
-    }
-    func sendAlertNoti(_ alertNoti: NotiAlertObject) {
-        notiAction(alertNoti)
-    }
-    func sendUserObject(_ userObj: UserDetailStruct) {
-        acceptNewUserObj(userObj)
-    }
-    func sendFileList(_ fileList: FullFileStruct) {
-        print("sendFileList")
-    }
-    // ===========
     func configureGeneralConstraints() {
         mainScrollView.absoluteFitToThe(parent: view.safeAreaLayoutGuide, padding: 0)
         vStackContainer.configStackView(parent: mainScrollView)
